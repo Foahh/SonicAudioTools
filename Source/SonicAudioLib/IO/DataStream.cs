@@ -74,7 +74,7 @@ namespace SonicAudioLib.IO
         public static byte[] ReadBytes(Stream source, int length)
         {
             byte[] buffer = new byte[length];
-            source.Read(buffer, 0, length);
+            source.ReadExactly(buffer, 0, length);
 
             return buffer;
         }
@@ -101,7 +101,7 @@ namespace SonicAudioLib.IO
 
         public static byte ReadByte(Stream source)
         {
-            source.Read(buffer, 0, 1);
+            source.ReadExactly(buffer, 0, 1);
 
             return buffer[0];
         }
@@ -135,7 +135,7 @@ namespace SonicAudioLib.IO
 
         public static bool ReadBoolean(Stream source)
         {
-            source.Read(buffer, 0, 1);
+            source.ReadExactly(buffer, 0, 1);
 
             return buffer[0] == 1;
         }
@@ -149,7 +149,7 @@ namespace SonicAudioLib.IO
 
         public static sbyte ReadSByte(Stream source)
         {
-            source.Read(buffer, 0, 1);
+            source.ReadExactly(buffer, 0, 1);
 
             return (sbyte)buffer[0];
         }
@@ -163,14 +163,14 @@ namespace SonicAudioLib.IO
 
         public static ushort ReadUInt16(Stream source)
         {
-            source.Read(buffer, 0, 2);
+            source.ReadExactly(buffer, 0, 2);
 
             return (ushort)(buffer[0] | buffer[1] << 8);
         }
 
         public static ushort ReadUInt16BE(Stream source)
         {
-            source.Read(buffer, 0, 2);
+            source.ReadExactly(buffer, 0, 2);
 
             return (ushort)(buffer[0] << 8 | buffer[1]);
         }
@@ -193,14 +193,14 @@ namespace SonicAudioLib.IO
 
         public static short ReadInt16(Stream source)
         {
-            source.Read(buffer, 0, 2);
+            source.ReadExactly(buffer, 0, 2);
 
             return (short)(buffer[0] | buffer[1] << 8);
         }
 
         public static short ReadInt16BE(Stream source)
         {
-            source.Read(buffer, 0, 2);
+            source.ReadExactly(buffer, 0, 2);
 
             return (short)(buffer[0] << 8 | buffer[1]);
         }
@@ -223,14 +223,14 @@ namespace SonicAudioLib.IO
 
         public static uint ReadUInt32(Stream source)
         {
-            source.Read(buffer, 0, 4);
+            source.ReadExactly(buffer, 0, 4);
 
             return (uint)(buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
         }
 
         public static uint ReadUInt32BE(Stream source)
         {
-            source.Read(buffer, 0, 4);
+            source.ReadExactly(buffer, 0, 4);
 
             return (uint)(buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]);
         }
@@ -257,14 +257,14 @@ namespace SonicAudioLib.IO
 
         public static int ReadInt32(Stream source)
         {
-            source.Read(buffer, 0, 4);
+            source.ReadExactly(buffer, 0, 4);
 
             return buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
         }
 
         public static int ReadInt32BE(Stream source)
         {
-            source.Read(buffer, 0, 4);
+            source.ReadExactly(buffer, 0, 4);
 
             return buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
         }
@@ -291,7 +291,7 @@ namespace SonicAudioLib.IO
 
         public static ulong ReadUInt64(Stream source)
         {
-            source.Read(buffer, 0, 8);
+            source.ReadExactly(buffer, 0, 8);
 
             return (buffer[0] | (ulong)buffer[1] << 8 |
                 (ulong)buffer[2] << 16 | (ulong)buffer[3] << 24 |
@@ -301,7 +301,7 @@ namespace SonicAudioLib.IO
 
         public static ulong ReadUInt64BE(Stream source)
         {
-            source.Read(buffer, 0, 8);
+            source.ReadExactly(buffer, 0, 8);
 
             return ((ulong)buffer[0] << 56 | (ulong)buffer[1] << 48 |
                 (ulong)buffer[2] << 40 | (ulong)buffer[3] << 32 |
@@ -339,7 +339,7 @@ namespace SonicAudioLib.IO
 
         public static long ReadInt64(Stream source)
         {
-            source.Read(buffer, 0, 8);
+            source.ReadExactly(buffer, 0, 8);
 
             return buffer[0] | buffer[1] << 8 |
                 buffer[2] << 16 | buffer[3] << 24 |
@@ -349,7 +349,7 @@ namespace SonicAudioLib.IO
 
         public static long ReadInt64BE(Stream source)
         {
-            source.Read(buffer, 0, 8);
+            source.ReadExactly(buffer, 0, 8);
 
             return buffer[0] << 56 | buffer[1] << 48 |
                 buffer[2] << 40 | buffer[3] << 32 |
@@ -458,11 +458,11 @@ namespace SonicAudioLib.IO
         {
             var characters = new List<byte>();
 
-            source.Read(buffer, 0, 1);
+            source.ReadExactly(buffer, 0, 1);
             while (buffer[0] != 0)
             {
                 characters.Add(buffer[0]);
-                source.Read(buffer, 0, 1);
+                source.ReadExactly(buffer, 0, 1);
             }
 
             return encoding.GetString(characters.ToArray());
@@ -491,7 +491,7 @@ namespace SonicAudioLib.IO
         public static string ReadCString(Stream source, int length, Encoding encoding)
         {
             byte[] buffer = new byte[length];
-            source.Read(buffer, 0, length);
+            source.ReadExactly(buffer, 0, length);
 
             for (int i = 0; i < buffer.Length; i++)
             {

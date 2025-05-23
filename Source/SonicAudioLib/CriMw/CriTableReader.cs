@@ -255,7 +255,7 @@ namespace SonicAudioLib.CriMw
         {
             return fields.Exists(field => field.Name == fieldName);
         }
-        
+
         private void GoToValue(int fieldIndex)
         {
             source.Seek(headerPosition + header.RowsPosition + (header.RowLength * rowIndex) + fields[fieldIndex].Offset, SeekOrigin.Begin);
@@ -469,7 +469,8 @@ namespace SonicAudioLib.CriMw
 
         public byte[] GetData(int fieldIndex)
         {
-            return GetSubStream(fieldIndex).ToArray();
+            using var ss = GetSubStream(fieldIndex);
+            return ss.ToArray();
         }
 
         public byte[] GetData(string fieldName)
@@ -530,7 +531,7 @@ namespace SonicAudioLib.CriMw
         {
             return GetPosition(GetFieldIndex(fieldName));
         }
-        
+
         public bool GetBoolean(int fieldIndex)
         {
             return (byte)GetValue(fieldIndex) > 0;
@@ -660,6 +661,6 @@ namespace SonicAudioLib.CriMw
             this.leaveOpen = leaveOpen;
 
             ReadTable();
-        }   
+        }
     }
 }
