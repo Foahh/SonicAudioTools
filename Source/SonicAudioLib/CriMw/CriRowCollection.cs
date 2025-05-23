@@ -2,82 +2,52 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace SonicAudioLib.CriMw
+namespace SonicAudioLib.CriMw;
+
+public class CriRowCollection(CriTable parent) : IEnumerable<CriRow>
 {
-    public class CriRowCollection : IEnumerable<CriRow>
+    private readonly List<CriRow> rows = new();
+
+    public CriRow this[int index] => rows[index];
+
+    public int Count => rows.Count;
+
+    public CriTable Parent { get; internal set; } = parent;
+
+    public IEnumerator<CriRow> GetEnumerator()
     {
-        private CriTable parent;
-        private List<CriRow> rows = new List<CriRow>();
+        return ((IEnumerable<CriRow>)rows).GetEnumerator();
+    }
 
-        public CriRow this[int index]
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable<CriRow>)rows).GetEnumerator();
+    }
+
+    public void Add(CriRow criRow)
+    {
+        criRow.Parent = Parent;
+        rows.Add(criRow);
+    }
+
+    public CriRow Add(params object[] objs)
+    {
+        var criRow = Parent.NewRow();
+
+        var objects = new object[criRow.FieldCount];
+        Array.Copy(objs, objects, Math.Min(objs.Length, objects.Length));
+
+        for (var i = 0; i < criRow.FieldCount; i++)
         {
-            get
-            {
-                return rows[index];
-            }
+            criRow[i] = objects[i];
         }
 
-        public int Count
-        {
-            get
-            {
-                return rows.Count;
-            }
-        }
+        Add(criRow);
+        return criRow;
+    }
 
-        public CriTable Parent
-        {
-            get
-            {
-                return parent;
-            }
-
-            internal set
-            {
-                parent = value;
-            }
-        }
-
-        public void Add(CriRow criRow)
-        {
-            criRow.Parent = parent;
-            rows.Add(criRow);
-        }
-
-        public CriRow Add(params object[] objs)
-        {
-            CriRow criRow = parent.NewRow();
-
-            object[] objects = new object[criRow.FieldCount];
-            Array.Copy(objs, objects, Math.Min(objs.Length, objects.Length));
-
-            for (int i = 0; i < criRow.FieldCount; i++)
-            {
-                criRow[i] = objects[i];
-            }
-
-            Add(criRow);
-            return criRow;
-        }
-
-        internal void Clear()
-        {
-            rows.Clear();
-        }
-
-        public IEnumerator<CriRow> GetEnumerator()
-        {
-            return ((IEnumerable<CriRow>)rows).GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<CriRow>)rows).GetEnumerator();
-        }
-
-        public CriRowCollection(CriTable parent)
-        {
-            this.parent = parent;
-        }
+    internal void Clear()
+    {
+        rows.Clear();
     }
 }

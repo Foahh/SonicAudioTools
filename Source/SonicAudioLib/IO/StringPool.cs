@@ -1,88 +1,71 @@
 ﻿using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Linq;
+using System.Text;
 
-namespace SonicAudioLib.IO
+namespace SonicAudioLib.IO;
+
+public class StringPool
 {
-    public class StringPool
+    public const string AdxBlankString = "<NULL>";
+    private readonly Encoding encoding = Encoding.Default;
+    private readonly List<StringItem> items = new();
+
+    public StringPool(Encoding encoding)
     {
-        private List<StringItem> items = new List<StringItem>();
+        this.encoding = encoding;
+    }
 
-        private long startPosition = 0;
-        private long length = 0;
-        private Encoding encoding = Encoding.Default;
+    public StringPool()
+    {
+    }
 
-        public const string AdxBlankString = "<NULL>";
+    public long Position { get; private set; }
 
-        public long Position
+    public long Length { get; private set; }
+
+    public long Put(string value)
+    {
+        if (string.IsNullOrEmpty(value))
         {
-            get
-            {
-                return startPosition;
-            }
+            return 0;
         }
 
-        public long Length
+        var position = Length;
+        items.Add(new StringItem { Value = value, Position = position });
+
+        Length += encoding.GetByteCount(value) + 1;
+        return position;
+    }
+
+    public void Write(Stream destination)
+    {
+        Position = (uint)destination.Position;
+
+        foreach (var item in items)
         {
-            get
-            {
-                return length;
-            }
+            DataStream.WriteCString(destination, item.Value, encoding);
         }
+    }
 
-        public long Put(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return 0;
-            }
+    public bool ContainsString(string value)
+    {
+        return items.Any(item => item.Value == value);
+    }
 
-            long position = length;
-            items.Add(new StringItem() { Value = value, Position = position });
+    public long GetStringPosition(string value)
+    {
+        return items.First(item => item.Value == value).Position;
+    }
 
-            length += encoding.GetByteCount(value) + 1;
-            return position;
-        }
+    public void Clear()
+    {
+        items.Clear();
+    }
 
-        public void Write(Stream destination)
-        {
-            startPosition = (uint)destination.Position;
-
-            foreach (StringItem item in items)
-            {
-                DataStream.WriteCString(destination, item.Value, encoding);
-            }
-        }
-
-        public bool ContainsString(string value)
-        {
-            return items.Any(item => item.Value == value);
-        }
-
-        public long GetStringPosition(string value)
-        {
-            return items.First(item => item.Value == value).Position;
-        }
-
-        public void Clear()
-        {
-            items.Clear();
-        }
-
-        public StringPool(Encoding encoding)
-        {
-            this.encoding = encoding;
-        }
-
-        public StringPool()
-        {
-        }
-
-        private class StringItem
-        {
-            public string Value { get; set; }
-            public long Position { get; set; }
-        }
+    private class StringItem
+    {
+        public string Value { get; set; }
+        public long Position { get; set; }
     }
 }

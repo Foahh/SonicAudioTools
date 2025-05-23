@@ -1,147 +1,112 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 
-namespace SonicAudioLib.IO
+namespace SonicAudioLib.IO;
+
+public sealed class SubStream : Stream
 {
-    public sealed class SubStream : Stream
+    private readonly long basePosition;
+    private readonly Stream baseStream;
+    private long baseLength;
+
+    public SubStream(Stream baseStream, long basePosition) : this(baseStream, basePosition, baseStream.Length - basePosition)
     {
-        private Stream baseStream;
-        private long basePosition;
-        private long baseLength;
+    }
 
-        public override bool CanRead
+    public SubStream(Stream baseStream, long basePosition, long baseLength)
+    {
+        this.baseStream = baseStream;
+        this.basePosition = basePosition;
+        this.baseLength = baseLength;
+
+        baseStream.Seek(this.basePosition, SeekOrigin.Begin);
+    }
+
+    public override bool CanRead => baseStream.CanRead;
+
+    public override bool CanSeek => baseStream.CanSeek;
+
+    public override bool CanWrite => baseStream.CanWrite;
+
+    public override long Length => baseLength;
+
+    public override long Position
+    {
+        get => baseStream.Position - basePosition;
+
+        set => baseStream.Position = basePosition + value;
+    }
+
+    public override void Flush()
+    {
+        baseStream.Flush();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        if (baseStream.Position >= basePosition + baseLength)
         {
-            get
-            {
-                return baseStream.CanRead;
-            }
+            count = 0;
         }
 
-        public override bool CanSeek
+        else if (baseStream.Position + count > basePosition + baseLength)
         {
-            get
-            {
-                return baseStream.CanSeek;
-            }
+            count = (int)(basePosition + baseLength - baseStream.Position);
         }
 
-        public override bool CanWrite
+        return baseStream.Read(buffer, offset, count);
+    }
+
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        if (origin == SeekOrigin.Begin)
         {
-            get
-            {
-                return baseStream.CanWrite;
-            }
+            offset += basePosition;
         }
 
-        public override long Length
+        else if (origin == SeekOrigin.End)
         {
-            get
-            {
-                return baseLength;
-            }
+            offset = basePosition + baseLength - offset;
+            origin = SeekOrigin.Begin;
         }
 
-        public override long Position
-        {
-            get
-            {
-                return baseStream.Position - basePosition;
-            }
+        return baseStream.Seek(offset, origin);
+    }
 
-            set
-            {
-                baseStream.Position = basePosition + value;
-            }
+    public override void SetLength(long value)
+    {
+        baseLength = value;
+
+        if (basePosition + baseLength > baseStream.Length)
+        {
+            baseStream.SetLength(basePosition + baseLength);
+        }
+    }
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        if (baseStream.Position >= basePosition + baseLength)
+        {
+            count = 0;
         }
 
-        public override void Flush()
+        else if (baseStream.Position + count > basePosition + baseLength)
         {
-            baseStream.Flush();
+            count = (int)(basePosition + baseLength - baseStream.Position);
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (baseStream.Position >= basePosition + baseLength)
-            {
-                count = 0;
-            }
+        baseStream.Write(buffer, 0, count);
+    }
 
-            else if (baseStream.Position + count > basePosition + baseLength)
-            {
-                count = (int)(basePosition + baseLength - baseStream.Position);
-            }
+    public byte[] ToArray()
+    {
+        var previousPosition = baseStream.Position;
 
-            return baseStream.Read(buffer, offset, count);
-        }
+        baseStream.Seek(basePosition, SeekOrigin.Begin);
 
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            if (origin == SeekOrigin.Begin)
-            {
-                offset += basePosition;
-            }
+        using var memoryStream = new MemoryStream();
+        CopyTo(memoryStream);
 
-            else if (origin == SeekOrigin.End)
-            {
-                offset = basePosition + baseLength - offset;
-                origin = SeekOrigin.Begin;
-            }
-
-            return baseStream.Seek(offset, origin);
-        }
-
-        public override void SetLength(long value)
-        {
-            baseLength = value;
-
-            if (basePosition + baseLength > baseStream.Length)
-            {
-                baseStream.SetLength(basePosition + baseLength);
-            }
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            if (baseStream.Position >= basePosition + baseLength)
-            {
-                count = 0;
-            }
-
-            else if (baseStream.Position + count > basePosition + baseLength)
-            {
-                count = (int)(basePosition + baseLength - baseStream.Position);
-            }
-
-            baseStream.Write(buffer, 0, count);
-        }
-
-        public byte[] ToArray()
-        {
-            long previousPosition = baseStream.Position;
-
-            baseStream.Seek(basePosition, SeekOrigin.Begin);
-
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                CopyTo(memoryStream);
-
-                baseStream.Seek(previousPosition, SeekOrigin.Begin);
-                return memoryStream.ToArray();
-            }
-        }
-
-        public SubStream(Stream baseStream, long basePosition) : this(baseStream, basePosition, baseStream.Length - basePosition)
-        {
-        }
-
-        public SubStream(Stream baseStream, long basePosition, long baseLength)
-        {
-            this.baseStream = baseStream;
-            this.basePosition = basePosition;
-            this.baseLength = baseLength;
-
-            baseStream.Seek(this.basePosition, SeekOrigin.Begin);
-        }
+        baseStream.Seek(previousPosition, SeekOrigin.Begin);
+        return memoryStream.ToArray();
     }
 }

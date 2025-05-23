@@ -1,139 +1,112 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace SonicAudioLib.CriMw
+namespace SonicAudioLib.CriMw;
+
+internal class CriRowRecord
 {
-    internal class CriRowRecord
+    public CriField Field { get; set; }
+    public object Value { get; set; }
+}
+
+public class CriRow : IEnumerable
+{
+    internal CriRow(CriTable parent)
     {
-        public CriField Field { get; set; }
-        public object Value { get; set; }
+        Parent = parent;
     }
 
-    public class CriRow : IEnumerable
+    public object this[CriField criField]
     {
-        private List<CriRowRecord> records = new List<CriRowRecord>();
-        private CriTable parent;
-
-        public object this[CriField criField]
+        get
         {
-            get
-            {
-                return this[records.FindIndex(record => record.Field == criField)];
-            }
-
-            set
-            {
-                this[records.FindIndex(record => record.Field == criField)] = value;
-            }
+            return this[Records.FindIndex(record => record.Field == criField)];
         }
 
-        public object this[int index]
+        set
         {
-            get
-            {
-                if (index < 0 || index >= records.Count)
-                {
-                    return null;
-                }
+            this[Records.FindIndex(record => record.Field == criField)] = value;
+        }
+    }
 
-                return records[index].Value;
+    public object this[int index]
+    {
+        get
+        {
+            if (index < 0 || index >= Records.Count)
+            {
+                return null;
             }
 
-            set
-            {
-                if (index < 0 || index >= records.Count)
-                {
-                    return;
-                }
-
-                records[index].Value = value;
-            }
+            return Records[index].Value;
         }
 
-        public object this[string name]
+        set
         {
-            get
+            if (index < 0 || index >= Records.Count)
             {
-                return this[records.FindIndex(record => record.Field.FieldName == name)];
+                return;
             }
 
-            set
-            {
-                this[records.FindIndex(record => record.Field.FieldName == name)] = value;
-            }
+            Records[index].Value = value;
         }
+    }
 
-        public CriTable Parent
+    public object this[string name]
+    {
+        get
         {
-            get
-            {
-                return parent;
-            }
-
-            internal set
-            {
-                parent = value;
-            }
+            return this[Records.FindIndex(record => record.Field.FieldName == name)];
         }
 
-        internal List<CriRowRecord> Records
+        set
         {
-            get
-            {
-                return records;
-            }
+            this[Records.FindIndex(record => record.Field.FieldName == name)] = value;
         }
+    }
 
-        public int FieldCount
+    public CriTable Parent { get; internal set; }
+
+    internal List<CriRowRecord> Records { get; } =
+    [
+    ];
+
+    public int FieldCount => Records.Count;
+
+    public IEnumerator GetEnumerator()
+    {
+        foreach (var record in Records)
         {
-            get
-            {
-                return records.Count;
-            }
+            yield return record.Value;
         }
 
-        public T GetValue<T>(CriField criField)
+        yield break;
+    }
+
+    public T GetValue<T>(CriField criField)
+    {
+        return (T)this[criField];
+    }
+
+    public T GetValue<T>(string fieldName)
+    {
+        return (T)this[fieldName];
+    }
+
+    public T GetValue<T>(int fieldIndex)
+    {
+        return (T)this[fieldIndex];
+    }
+
+    public object[] GetValueArray()
+    {
+        var values = new object[Records.Count];
+
+        for (var i = 0; i < Records.Count; i++)
         {
-            return (T)this[criField];
+            values[i] = Records[i].Value;
         }
 
-        public T GetValue<T>(string fieldName)
-        {
-            return (T)this[fieldName];
-        }
-
-        public T GetValue<T>(int fieldIndex)
-        {
-            return (T)this[fieldIndex];
-        }
-
-        public object[] GetValueArray()
-        {
-            object[] values = new object[records.Count];
-            
-            for (int i = 0; i < records.Count; i++)
-            {
-                values[i] = records[i].Value;
-            }
-
-            return values;
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            foreach (var record in records)
-            {
-                yield return record.Value;
-            }
-
-            yield break;
-        }
-
-        internal CriRow(CriTable parent)
-        {
-            this.parent = parent;
-        }
+        return values;
     }
 }

@@ -1,134 +1,93 @@
 ﻿using System;
 using System.ComponentModel;
 
-namespace SonicAudioLib.CriMw
+namespace SonicAudioLib.CriMw;
+
+public class CriField
 {
-    public class CriField
+    public static readonly Type[] FieldTypes =
     {
-        public static readonly Type[] FieldTypes =
-        {
-            typeof(byte),
-            typeof(sbyte),
-            typeof(ushort),
-            typeof(short),
-            typeof(uint),
-            typeof(int),
-            typeof(ulong),
-            typeof(long),
-            typeof(float),
-            typeof(double),
-            typeof(string),
-            typeof(byte[]),
-            typeof(Guid),
-        };
+        typeof(byte),
+        typeof(sbyte),
+        typeof(ushort),
+        typeof(short),
+        typeof(uint),
+        typeof(int),
+        typeof(ulong),
+        typeof(long),
+        typeof(float),
+        typeof(double),
+        typeof(string),
+        typeof(byte[]),
+        typeof(Guid)
+    };
 
-        public static object[] NullValues =
-        {
-            (byte)0,
-            (sbyte)0,
-            (ushort)0,
-            (short)0,
-            (uint)0,
-            (int)0,
-            (ulong)0,
-            (long)0,
-            (float)0.0f,
-            (double)0.0f,
-            (string)string.Empty,
-            (byte[])new byte[0],
-            (Guid)Guid.Empty,
-        };
+    public static readonly object[] NullValues =
+    {
+        (byte)0,
+        (sbyte)0,
+        (ushort)0,
+        (short)0,
+        (uint)0,
+        0,
+        (ulong)0,
+        (long)0,
+        0.0f,
+        (double)0.0f,
+        string.Empty,
+        Array.Empty<byte>(),
+        Guid.Empty
+    };
 
-        private Type fieldType;
-        private string fieldName;
-        private object defaultValue;
-        private CriTable parent;
+    public CriField(string name, Type type)
+    {
+        FieldName = name;
+        FieldType = type;
+    }
 
-        public int FieldTypeIndex
+    public CriField(string name, Type type, object defaultValue)
+    {
+        FieldName = name;
+        FieldType = type;
+        this.DefaultValue = ConvertObject(defaultValue);
+    }
+
+    public int FieldTypeIndex => Array.IndexOf(FieldTypes, FieldType);
+
+    public Type FieldType { get; }
+
+    public object DefaultValue
+    {
+        get;
+
+        set => field = ConvertObject(value);
+    }
+
+    public string FieldName { get; }
+
+    public CriTable Parent { get; internal set; }
+
+    public object ConvertObject(object obj)
+    {
+        if (obj == null)
         {
-            get
-            {
-                return Array.IndexOf(FieldTypes, fieldType);
-            }
+            return NullValues[FieldTypeIndex];
         }
 
-        public Type FieldType
+        var typ = obj.GetType();
+
+        if (typ == FieldType)
         {
-            get
-            {
-                return fieldType;
-            }
+            return obj;
         }
 
-        public object DefaultValue
-        {
-            get
-            {
-                return defaultValue;
-            }
+        var typeConverter = TypeDescriptor.GetConverter(FieldType);
 
-            set
-            {
-                defaultValue = ConvertObject(value);
-            }
+        if (typeConverter.CanConvertFrom(typ))
+        {
+            return typeConverter.ConvertFrom(obj);
         }
 
-        public string FieldName
-        {
-            get
-            {
-                return fieldName;
-            }
-        }
-
-        public object ConvertObject(object obj)
-        {
-            if (obj == null)
-            {
-                return NullValues[FieldTypeIndex];
-            }
-
-            Type typ = obj.GetType();
-
-            if (typ == fieldType)
-            {
-                return obj;
-            }
-
-            TypeConverter typeConverter = TypeDescriptor.GetConverter(fieldType);
-
-            if (typeConverter.CanConvertFrom(typ))
-            {
-                return typeConverter.ConvertFrom(obj);
-            }
-
-            return DefaultValue;
-        }
-
-        public CriTable Parent
-        {
-            get
-            {
-                return parent;
-            }
-
-            internal set
-            {
-                parent = value;
-            }
-        }
-
-        public CriField(string name, Type type)
-        {
-            fieldName = name;
-            fieldType = type;
-        }
-
-        public CriField(string name, Type type, object defaultValue)
-        {
-            fieldName = name;
-            fieldType = type;
-            this.defaultValue = ConvertObject(defaultValue);
-        }
+        return DefaultValue;
     }
 }

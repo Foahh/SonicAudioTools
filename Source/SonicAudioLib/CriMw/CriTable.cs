@@ -1,238 +1,192 @@
-﻿using System;
+﻿using SonicAudioLib.FileBases;
+using System;
 using System.IO;
 using System.Linq;
-
-using SonicAudioLib.IO;
-using SonicAudioLib.FileBases;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace SonicAudioLib.CriMw
+namespace SonicAudioLib.CriMw;
+
+public class CriTable : FileXmlBase
 {
-    public class CriTable : FileXmlBase
+    public CriTable()
     {
-        private CriFieldCollection fields;
-        private CriRowCollection rows;
-        private string tableName = "(no name)";
-        private CriTableWriterSettings writerSettings;
+        Fields = new CriFieldCollection(this);
+        Rows = new CriRowCollection(this);
+        WriterSettings = new CriTableWriterSettings();
+    }
 
-        public CriFieldCollection Fields
-        {
-            get
-            {
-                return fields;
-            }
-        } 
+    public CriTable(string tableName) : this()
+    {
+        TableName = tableName;
+    }
 
-        public CriRowCollection Rows
+    public CriFieldCollection Fields { get; }
+
+    public CriRowCollection Rows { get; }
+
+    public string TableName { get; set; } = "(no name)";
+
+    public CriTableWriterSettings WriterSettings { get; set; }
+
+    public void Clear()
+    {
+        Rows.Clear();
+        Fields.Clear();
+    }
+
+    public CriRow NewRow()
+    {
+        var criRow = new CriRow(this);
+
+        foreach (var criField in Fields)
         {
-            get
-            {
-                return rows;
-            }
+            criRow.Records.Add(new CriRowRecord { Field = criField, Value = criField.DefaultValue });
         }
 
-        public string TableName
-        {
-            get
-            {
-                return tableName;
-            }
+        return criRow;
+    }
 
-            set
-            {
-                tableName = value;
-            }
+    public override void Read(Stream source)
+    {
+        using var reader = CriTableReader.Create(source);
+        TableName = reader.TableName;
+
+        for (var i = 0; i < reader.NumberOfFields; i++)
+        {
+            Fields.Add(reader.GetFieldName(i), reader.GetFieldType(i), reader.GetFieldValue(i));
         }
 
-        public CriTableWriterSettings WriterSettings
+        while (reader.Read())
         {
-            get
-            {
-                return writerSettings;
-            }
-
-            set
-            {
-                writerSettings = value;
-            }
+            Rows.Add(reader.GetValueArray());
         }
+    }
 
-        public void Clear()
+    public override void Write(Stream destination)
+    {
+        using var writer = CriTableWriter.Create(destination, WriterSettings);
+        writer.WriteStartTable(TableName);
+
+        writer.WriteStartFieldCollection();
+        foreach (var criField in Fields)
         {
-            rows.Clear();
-            fields.Clear();
-        }
+            var useDefaultValue = false;
+            object defaultValue = null;
 
-        public CriRow NewRow()
-        {
-            CriRow criRow = new CriRow(this);
-
-            foreach (CriField criField in fields)
+            if (Rows.Count > 1)
             {
-                criRow.Records.Add(new CriRowRecord { Field = criField, Value = criField.DefaultValue });
-            }
+                useDefaultValue = true;
+                defaultValue = Rows[0][criField];
 
-            return criRow;
-        }
-
-        public override void Read(Stream source)
-        {
-            using (CriTableReader reader = CriTableReader.Create(source))
-            {
-                tableName = reader.TableName;
-
-                for (int i = 0; i < reader.NumberOfFields; i++)
+                if (Rows.Any(row => !row[criField].Equals(defaultValue)))
                 {
-                    fields.Add(reader.GetFieldName(i), reader.GetFieldType(i), reader.GetFieldValue(i));
-                }
-
-                while (reader.Read())
-                {
-                    rows.Add(reader.GetValueArray());
+                    useDefaultValue = false;
                 }
             }
-        }
 
-        public override void Write(Stream destination)
-        {
-            using (CriTableWriter writer = CriTableWriter.Create(destination, writerSettings))
+            else if (Rows.Count == 0)
             {
-                writer.WriteStartTable(tableName);
-
-                writer.WriteStartFieldCollection();
-                foreach (CriField criField in fields)
-                {
-                    bool useDefaultValue = false;
-                    object defaultValue = null;
-
-                    if (rows.Count > 1)
-                    {
-                        useDefaultValue = true;
-                        defaultValue = rows[0][criField];
-
-                        if (rows.Any(row => !row[criField].Equals(defaultValue)))
-                        {
-                            useDefaultValue = false;
-                        }
-                    }
-
-                    else if (rows.Count == 0)
-                    {
-                        useDefaultValue = true;
-                    }
-
-                    if (useDefaultValue)
-                    {
-                        writer.WriteField(criField.FieldName, criField.FieldType, defaultValue);
-                    }
-
-                    else
-                    {
-                        writer.WriteField(criField.FieldName, criField.FieldType);
-                    }
-                }
-                writer.WriteEndFieldCollection();
-
-                foreach (CriRow criRow in rows)
-                {
-                    writer.WriteRow(true, criRow.GetValueArray());
-                }
-
-                writer.WriteEndTable();
-            }
-        }
-
-        public override void ReadXml(XmlReader reader)
-        {
-            var document = XDocument.Load(reader);
-
-            foreach (XElement element in document.Root.Element(nameof(Fields)).Elements(nameof(CriField)))
-            {
-                fields.Add(
-                    element.Element(nameof(CriField.FieldName)).Value,
-                    Type.GetType(element.Element(nameof(CriField.FieldType)).Value)
-                    );
+                useDefaultValue = true;
             }
 
-            foreach (XElement element in document.Root.Element(nameof(Rows)).Elements(nameof(CriRow)))
+            if (useDefaultValue)
             {
-                CriRow row = NewRow();
+                writer.WriteField(criField.FieldName, criField.FieldType, defaultValue);
+            }
 
-                foreach (CriRowRecord record in row.Records)
+            else
+            {
+                writer.WriteField(criField.FieldName, criField.FieldType);
+            }
+        }
+        writer.WriteEndFieldCollection();
+
+        foreach (var criRow in Rows)
+        {
+            writer.WriteRow(true, criRow.GetValueArray());
+        }
+
+        writer.WriteEndTable();
+    }
+
+    public override void ReadXml(XmlReader reader)
+    {
+        var document = XDocument.Load(reader);
+
+        foreach (var element in document.Root.Element(nameof(Fields)).Elements(nameof(CriField)))
+        {
+            Fields.Add(
+                element.Element(nameof(CriField.FieldName)).Value,
+                Type.GetType(element.Element(nameof(CriField.FieldType)).Value)
+            );
+        }
+
+        foreach (var element in document.Root.Element(nameof(Rows)).Elements(nameof(CriRow)))
+        {
+            var row = NewRow();
+
+            foreach (var record in row.Records)
+            {
+                if (record.Field.FieldType == typeof(byte[]))
                 {
-                    if (record.Field.FieldType == typeof(byte[]))
-                    {
-                        record.Value = Convert.FromBase64String(element.Element(record.Field.FieldName).Value);
-                    }
-
-                    else
-                    {
-                        record.Value = Convert.ChangeType(element.Element(record.Field.FieldName).Value, record.Field.FieldType);
-                    }
+                    record.Value = Convert.FromBase64String(element.Element(record.Field.FieldName).Value);
                 }
 
-                rows.Add(row);
+                else
+                {
+                    record.Value = Convert.ChangeType(element.Element(record.Field.FieldName).Value, record.Field.FieldType);
+                }
             }
+
+            Rows.Add(row);
+        }
+    }
+
+    public override void WriteXml(XmlWriter writer)
+    {
+        var document = new XDocument(new XElement(nameof(CriTable)));
+        document.Root.Add(new XElement(nameof(TableName), TableName));
+
+        var fieldsElement = new XElement(nameof(Fields));
+
+        foreach (var field in Fields)
+        {
+            var fieldElement = new XElement(nameof(CriField));
+
+            fieldElement.Add(
+                new XElement(nameof(field.FieldName), field.FieldName),
+                new XElement(nameof(field.FieldType), field.FieldType.Name)
+            );
+
+            fieldsElement.Add(fieldElement);
         }
 
-        public override void WriteXml(XmlWriter writer)
+        document.Root.Add(fieldsElement);
+
+        var rowsElement = new XElement(nameof(Rows));
+
+        foreach (var row in Rows)
         {
-            var document = new XDocument(new XElement(nameof(CriTable)));
-            document.Root.Add(new XElement(nameof(TableName), TableName));
+            var rowElement = new XElement(nameof(CriRow));
 
-            var fieldsElement = new XElement(nameof(Fields));
-
-            foreach (CriField field in fields)
+            foreach (var record in row.Records)
             {
-                var fieldElement = new XElement(nameof(CriField));
-
-                fieldElement.Add(
-                    new XElement(nameof(field.FieldName), field.FieldName),
-                    new XElement(nameof(field.FieldType), field.FieldType.Name)
-                    );
-
-                fieldsElement.Add(fieldElement);
-            }
-
-            document.Root.Add(fieldsElement);
-
-            var rowsElement = new XElement(nameof(Rows));
-
-            foreach (CriRow row in rows)
-            {
-                var rowElement = new XElement(nameof(CriRow));
-
-                foreach (CriRowRecord record in row.Records)
+                if (record.Value is byte[] bytes)
                 {
-                    if (record.Value is byte[] bytes)
-                    {
-                        rowElement.Add(new XElement(record.Field.FieldName, Convert.ToBase64String(bytes)));
-                    }
-
-                    else
-                    {
-                        rowElement.Add(new XElement(record.Field.FieldName, record.Value));
-                    }
+                    rowElement.Add(new XElement(record.Field.FieldName, Convert.ToBase64String(bytes)));
                 }
 
-                rowsElement.Add(rowElement);
+                else
+                {
+                    rowElement.Add(new XElement(record.Field.FieldName, record.Value));
+                }
             }
 
-            document.Root.Add(rowsElement);
-            document.Save(writer);
+            rowsElement.Add(rowElement);
         }
 
-        public CriTable()
-        {
-            fields = new CriFieldCollection(this);
-            rows = new CriRowCollection(this);
-            writerSettings = new CriTableWriterSettings();
-        }
-
-        public CriTable(string tableName) : this()
-        {
-            this.tableName = tableName;
-        }
+        document.Root.Add(rowsElement);
+        document.Save(writer);
     }
 }

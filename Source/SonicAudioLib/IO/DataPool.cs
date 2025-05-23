@@ -1,144 +1,118 @@
 ﻿using System.Collections;
 using System.IO;
 
-using SonicAudioLib.FileBases;
+namespace SonicAudioLib.IO;
 
-namespace SonicAudioLib.IO
+public class DataPool
 {
-    public class DataPool
+    private readonly uint align = 1;
+    private readonly long baseLength;
+    private readonly ArrayList items = new();
+
+    public DataPool(uint align, long baseLength)
     {
-        private ArrayList items = new ArrayList();
+        this.align = align;
 
-        private long startPosition = 0;
-        private uint align = 1;
-        private long length = 0;
-        private long baseLength = 0;
+        this.baseLength = baseLength;
+        Length = this.baseLength;
+    }
 
-        public long Position
+    public DataPool(uint align)
+    {
+        this.align = align;
+    }
+
+    public DataPool()
+    {
+    }
+
+    public long Position { get; private set; }
+
+    public long Length { get; private set; }
+
+    public long Align => align;
+
+    public event ProgressChanged ProgressChanged;
+
+    public long Put(byte[] data)
+    {
+        if (data == null || data.Length <= 0)
         {
-            get
+            return 0;
+        }
+
+        Length = Helpers.Align(Length, align);
+
+        var position = Length;
+        Length += data.Length;
+        items.Add(data);
+
+        return position;
+    }
+
+    public long Put(Stream stream)
+    {
+        if (stream == null || stream.Length <= 0)
+        {
+            return 0;
+        }
+
+        Length = Helpers.Align(Length, align);
+
+        var position = Length;
+        Length += stream.Length;
+        items.Add(stream);
+
+        return position;
+    }
+
+    public long Put(FileInfo fileInfo)
+    {
+        if (fileInfo == null || fileInfo.Length <= 0)
+        {
+            return 0;
+        }
+
+        Length = Helpers.Align(Length, align);
+
+        var position = Length;
+        Length += fileInfo.Length;
+        items.Add(fileInfo);
+
+        return position;
+    }
+
+    public void Write(Stream destination)
+    {
+        Position = destination.Position;
+
+        foreach (var item in items)
+        {
+            DataStream.Pad(destination, align);
+
+            if (item is byte[] bytes)
             {
-                return startPosition;
+                destination.Write(bytes, 0, bytes.Length);
             }
-        }
 
-        public long Length
-        {
-            get
+            else if (item is Stream stream)
             {
-                return length;
+                stream.Seek(0, SeekOrigin.Begin);
+                stream.CopyTo(destination);
             }
-        }
 
-        public long Align
-        {
-            get
+            else if (item is FileInfo fileInfo)
             {
-                return align;
-            }
-        }
-
-        public event ProgressChanged ProgressChanged;
-
-        public long Put(byte[] data)
-        {
-            if (data == null || data.Length <= 0)
-            {
-                return 0;
+                using Stream source = fileInfo.OpenRead();
+                source.CopyTo(destination);
             }
 
-            length = Helpers.Align(length, align);
-
-            long position = length;
-            length += data.Length;
-            items.Add(data);
-
-            return position;
+            ProgressChanged?.Invoke(this, new ProgressChangedEventArgs((destination.Position - Position) / (double)(Length - baseLength) * 100.0));
         }
+    }
 
-        public long Put(Stream stream)
-        {
-            if (stream == null || stream.Length <= 0)
-            {
-                return 0;
-            }
-
-            length = Helpers.Align(length, align);
-
-            long position = length;
-            length += stream.Length;
-            items.Add(stream);
-
-            return position;
-        }
-
-        public long Put(FileInfo fileInfo)
-        {
-            if (fileInfo == null || fileInfo.Length <= 0)
-            {
-                return 0;
-            }
-
-            length = Helpers.Align(length, align);
-
-            long position = length;
-            length += fileInfo.Length;
-            items.Add(fileInfo);
-
-            return position;
-        }
-
-        public void Write(Stream destination)
-        {
-            startPosition = destination.Position;
-
-            foreach (object item in items)
-            {
-                DataStream.Pad(destination, align);
-
-                if (item is byte[] bytes)
-                {
-                    destination.Write(bytes, 0, bytes.Length);
-                }
-
-                else if (item is Stream stream)
-                {
-                    stream.Seek(0, SeekOrigin.Begin);
-                    stream.CopyTo(destination);
-                }
-
-                else if (item is FileInfo fileInfo)
-                {
-                    using (Stream source = fileInfo.OpenRead())
-                    {
-                        source.CopyTo(destination);
-                    }
-                }
-
-                ProgressChanged?.Invoke(this, new ProgressChangedEventArgs(((destination.Position - startPosition) / (double)(length - baseLength)) * 100.0));
-            }
-        }
-
-        public void Clear()
-        {
-            items.Clear();
-        }
-
-        public DataPool(uint align, long baseLength)
-        {
-            this.align = align;
-
-            this.baseLength = baseLength;
-            length = this.baseLength;
-        }
-        
-        public DataPool(uint align)
-        {
-            this.align = align;
-        }
-
-        public DataPool()
-        {
-        }
+    public void Clear()
+    {
+        items.Clear();
     }
 }

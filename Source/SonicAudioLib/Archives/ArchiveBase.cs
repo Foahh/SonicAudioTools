@@ -1,160 +1,122 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Reflection;
-
+﻿using SonicAudioLib.FileBases;
 using SonicAudioLib.IO;
-using SonicAudioLib.FileBases;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 
-namespace SonicAudioLib.Archives
+namespace SonicAudioLib.Archives;
+
+public abstract class EntryBase
 {
-    public abstract class EntryBase
+    public virtual long Position { get; set; }
+
+    public virtual long Length
     {
-        protected long length;
-
-        public virtual long Position { get; set; }
-
-        public virtual long Length
-        {
-            get
-            {
-                if (Stream != null)
-                {
-                    return Stream.Length;
-                }
-
-                return length;
-            }
-
-            set
-            {
-                length = value;
-            }
-        }
-
-        public virtual Stream Stream { get; set; }
-
-        public virtual Stream Open(Stream source)
-        {
-            return new SubStream(source, Position, length);
-        }
+        get => Stream?.Length ?? field;
+        set;
     }
 
-    public abstract class ArchiveBase<T> : FileBase, IList<T>
+    public virtual Stream Stream { get; set; }
+
+    public virtual Stream Open(Stream source)
     {
-        protected List<T> entries = new List<T>();
+        return new SubStream(source, Position, Length);
+    }
+}
 
-        public virtual int Count
-        {
-            get
-            {
-                return entries.Count;
-            }
-        }
+public abstract class ArchiveBase<T> : FileBase, IList<T>
+{
+    protected readonly List<T> Entries = [];
 
-        public virtual bool IsReadOnly
-        {
-            get
-            {
-                return false;
-            }
-        }
+    public virtual int Count => Entries.Count;
 
-        public virtual T this[int index]
-        {
-            get
-            {
-                return entries[index];
-            }
+    public virtual bool IsReadOnly => false;
 
-            set
-            {
-                entries[index] = value;
-            }
-        }
+    public virtual T this[int index]
+    {
+        get => Entries[index];
 
-        public virtual event ProgressChanged ProgressChanged;
+        set => Entries[index] = value;
+    }
 
-        public virtual int IndexOf(T item)
-        {
-            return entries.IndexOf(item);
-        }
+    public event ProgressChanged ProgressChanged;
 
-        public virtual void Insert(int index, T item)
-        {
-            entries.Insert(index, item);
-        }
+    public virtual int IndexOf(T item)
+    {
+        return Entries.IndexOf(item);
+    }
 
-        public virtual void RemoveAt(int index)
-        {
-            entries.RemoveAt(index);
-        }
+    public virtual void Insert(int index, T item)
+    {
+        Entries.Insert(index, item);
+    }
 
-        public virtual void Add(T item)
-        {
-            entries.Add(item);
-        }
+    public virtual void RemoveAt(int index)
+    {
+        Entries.RemoveAt(index);
+    }
 
-        public virtual void Clear()
-        {
-            entries.Clear();
-        }
+    public virtual void Add(T item)
+    {
+        Entries.Add(item);
+    }
 
-        public virtual bool Contains(T item)
-        {
-            return entries.Contains(item);
-        }
+    public virtual void Clear()
+    {
+        Entries.Clear();
+    }
 
-        public virtual void CopyTo(T[] array, int arrayIndex)
-        {
-            entries.CopyTo(array, arrayIndex);
-        }
+    public virtual bool Contains(T item)
+    {
+        return Entries.Contains(item);
+    }
 
-        public virtual bool Remove(T item)
-        {
-            return entries.Remove(item);
-        }
+    public virtual void CopyTo(T[] array, int arrayIndex)
+    {
+        Entries.CopyTo(array, arrayIndex);
+    }
 
-        public virtual IEnumerator<T> GetEnumerator()
-        {
-            return entries.GetEnumerator();
-        }
+    public virtual bool Remove(T item)
+    {
+        return Entries.Remove(item);
+    }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return entries.GetEnumerator();
-        }
+    public virtual IEnumerator<T> GetEnumerator()
+    {
+        return Entries.GetEnumerator();
+    }
 
-        protected virtual void OnProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            ProgressChanged?.Invoke(this, e);
-        }
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return Entries.GetEnumerator();
+    }
+
+    protected virtual void OnProgressChanged(object sender, ProgressChangedEventArgs e)
+    {
+        ProgressChanged?.Invoke(this, e);
+    }
 
 #if DEBUG
-        public virtual void Print()
+    public virtual void Print()
+    {
+        Type archiveType = GetType();
+        Console.WriteLine("{0}:", archiveType.Name);
+
+        foreach (PropertyInfo property in archiveType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
         {
-            Type archiveType = GetType();
-            Console.WriteLine("{0}:", archiveType.Name);
+            Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(this));
+        }
 
-            foreach (PropertyInfo property in archiveType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
+        foreach (T entry in entries)
+        {
+            Type entryType = entry.GetType();
+
+            Console.WriteLine("{0}:", entryType.Name);
+            foreach (PropertyInfo property in entryType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
             {
-                Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(this));
-            }
-
-            foreach (T entry in entries)
-            {
-                Type entryType = entry.GetType();
-
-                Console.WriteLine("{0}:", entryType.Name);
-                foreach (PropertyInfo property in entryType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
-                {
-                    Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(entry));
-                }
+                Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(entry));
             }
         }
-#endif
     }
+#endif
 }

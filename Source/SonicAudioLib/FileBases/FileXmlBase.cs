@@ -1,38 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Xml;
 
-using System.Xml;
+namespace SonicAudioLib.FileBases;
 
-namespace SonicAudioLib.FileBases
+// Because C# doesn't allow you to inherit
+// more than 1 abstract class.
+public abstract class FileXmlBase : FileBase
 {
-    // Because C# doesn't allow you to inherit
-    // more than 1 abstract class.
-    public abstract class FileXmlBase : FileBase
+    public abstract void ReadXml(XmlReader reader);
+    public abstract void WriteXml(XmlWriter writer);
+
+    public virtual void LoadXml(string sourceFileName)
     {
-        public abstract void ReadXml(XmlReader reader);
-        public abstract void WriteXml(XmlWriter writer);
+        using var reader = XmlReader.Create(sourceFileName);
+        ReadXml(reader);
+    }
 
-        public virtual void LoadXml(string sourceFileName)
-        {
-            using (XmlReader reader = XmlReader.Create(sourceFileName))
-            {
-                ReadXml(reader);
-            }
-        }
+    public virtual void SaveXml(string destinationFileName)
+    {
+        var settings = new XmlWriterSettings();
+        settings.Indent = true;
 
-        public virtual void SaveXml(string destinationFileName)
-        {
-            var settings = new XmlWriterSettings();
-            settings.Indent = true;
-
-            using (XmlWriter writer = XmlWriter.Create(destinationFileName, settings))
-            {
-                WriteXml(writer);
-            }
-        }
+        using var writer = XmlWriter.Create(destinationFileName, settings);
+        WriteXml(writer);
     }
 }

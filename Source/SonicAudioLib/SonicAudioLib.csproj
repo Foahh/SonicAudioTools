@@ -6,5 +6,6 @@
     <Description>Class library for various audio formats for Sonic the Hedgehog games.</Description>
     <Product>SonicAudioLib</Product>
     <Copyright>Copyright © blueskythlikesclouds 2014-2017</Copyright>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 </Project>

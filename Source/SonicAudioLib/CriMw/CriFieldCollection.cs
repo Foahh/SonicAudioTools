@@ -3,119 +3,89 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SonicAudioLib.CriMw
+namespace SonicAudioLib.CriMw;
+
+public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 {
-    public class CriFieldCollection : IEnumerable<CriField>
+    private readonly List<CriField> fields = [];
+
+    public CriField this[int index] => fields[index];
+
+    public CriField this[string name]
     {
-        private CriTable parent;
-        private List<CriField> fields = new List<CriField>();
-
-        public CriField this[int index]
+        get
         {
-            get
-            {
-                return fields[index];
-            }
+            return fields.FirstOrDefault(field => field.FieldName == name);
         }
+    }
 
-        public CriField this[string name]
+    public int Count => fields.Count;
+
+    public CriTable Parent { get; internal set; } = parent;
+
+    public IEnumerator<CriField> GetEnumerator()
+    {
+        return ((IEnumerable<CriField>)fields).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable<CriField>)fields).GetEnumerator();
+    }
+
+    public void Add(CriField criField)
+    {
+        criField.Parent = Parent;
+        fields.Add(criField);
+    }
+
+    public CriField Add(string name, Type type)
+    {
+        var criField = new CriField(name, type);
+        Add(criField);
+
+        return criField;
+    }
+
+    public CriField Add(string name, Type type, object defaultValue)
+    {
+        var criField = new CriField(name, type, defaultValue);
+        Add(criField);
+
+        return criField;
+    }
+
+    public void Insert(int index, CriField criField)
+    {
+        if (index >= fields.Count || index < 0)
         {
-            get
-            {
-                return fields.FirstOrDefault(field => field.FieldName == name);
-            }
-        }
-
-        public int Count
-        {
-            get
-            {
-                return fields.Count;
-            }
-        }
-
-        public CriTable Parent
-        {
-            get
-            {
-                return parent;
-            }
-
-            internal set
-            {
-                parent = value;
-            }
-        }
-
-        public void Add(CriField criField)
-        {
-            criField.Parent = parent;
             fields.Add(criField);
         }
 
-        public CriField Add(string name, Type type)
+        else
         {
-            CriField criField = new CriField(name, type);
-            Add(criField);
-
-            return criField;
+            fields.Insert(index, criField);
         }
+    }
 
-        public CriField Add(string name, Type type, object defaultValue)
+    public void Remove(CriField criField)
+    {
+        fields.Remove(criField);
+
+        // Update the rows
+        foreach (var criRow in Parent.Rows)
         {
-            CriField criField = new CriField(name, type, defaultValue);
-            Add(criField);
-
-            return criField;
+            criRow.Records.RemoveAll(record => record.Field == criField);
         }
+    }
 
-        public void Insert(int index, CriField criField)
-        {
-            if (index >= fields.Count || index < 0)
-            {
-                fields.Add(criField);
-            }
+    public void RemoveAt(int index)
+    {
+        Remove(fields[index]);
+    }
 
-            else
-            {
-                fields.Insert(index, criField);
-            }
-        }
-
-        public void Remove(CriField criField)
-        {
-            fields.Remove(criField);
-
-            // Update the rows
-            foreach (CriRow criRow in parent.Rows)
-            {
-                criRow.Records.RemoveAll(record => record.Field == criField);
-            }
-        }
-
-        public void RemoveAt(int index)
-        {
-            Remove(fields[index]);
-        }
-
-        internal void Clear()
-        {
-            fields.Clear();
-        }
-
-        public IEnumerator<CriField> GetEnumerator()
-        {
-            return ((IEnumerable<CriField>)fields).GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<CriField>)fields).GetEnumerator();
-        }
-
-        public CriFieldCollection(CriTable parent)
-        {
-            this.parent = parent;
-        }
+    internal void Clear()
+    {
+        fields.Clear();
     }
 }
