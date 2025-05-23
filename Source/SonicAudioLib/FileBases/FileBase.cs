@@ -59,5 +59,10 @@ namespace SonicAudioLib.FileBases
                 return destination.ToArray();
             }
         }
+
+        public virtual void Save(Stream destination)
+        {
+            Write(destination);
+        }
     }
 }
