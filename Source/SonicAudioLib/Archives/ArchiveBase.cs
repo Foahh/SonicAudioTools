@@ -21,9 +21,9 @@ namespace SonicAudioLib.Archives
         {
             get
             {
-                if (FilePath != null)
+                if (Stream != null)
                 {
-                    return FilePath.Length;
+                    return Stream.Length;
                 }
 
                 return length;
@@ -35,16 +35,11 @@ namespace SonicAudioLib.Archives
             }
         }
 
-        public virtual FileInfo FilePath { get; set; }
+        public virtual Stream Stream { get; set; }
 
         public virtual Stream Open(Stream source)
         {
             return new SubStream(source, Position, length);
-        }
-
-        public virtual Stream Open()
-        {
-            return FilePath.OpenRead();
         }
     }
 
