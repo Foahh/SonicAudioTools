@@ -95,28 +95,4 @@ public abstract class ArchiveBase<T> : FileBase, IList<T>
     {
         ProgressChanged?.Invoke(this, e);
     }
-
-#if DEBUG
-    public virtual void Print()
-    {
-        Type archiveType = GetType();
-        Console.WriteLine("{0}:", archiveType.Name);
-
-        foreach (PropertyInfo property in archiveType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
-        {
-            Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(this));
-        }
-
-        foreach (T entry in entries)
-        {
-            Type entryType = entry.GetType();
-
-            Console.WriteLine("{0}:", entryType.Name);
-            foreach (PropertyInfo property in entryType.GetProperties().Where(p => p.GetIndexParameters().Length == 0))
-            {
-                Console.WriteLine(" {0}: {1}", property.Name, property.GetValue(entry));
-            }
-        }
-    }
-#endif
 }
