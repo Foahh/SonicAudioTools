@@ -49,7 +49,7 @@ public class CriField
     {
         FieldName = name;
         FieldType = type;
-        this.DefaultValue = ConvertObject(defaultValue);
+        DefaultValue = ConvertObject(defaultValue);
     }
 
     public int FieldTypeIndex => Array.IndexOf(FieldTypes, FieldType);

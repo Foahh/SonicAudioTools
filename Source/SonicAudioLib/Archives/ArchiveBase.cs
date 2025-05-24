@@ -39,8 +39,6 @@ public abstract class ArchiveBase<T> : FileBase, IList<T>
         set => Entries[index] = value;
     }
 
-    public event ProgressChanged ProgressChanged;
-
     public virtual int IndexOf(T item)
     {
         return Entries.IndexOf(item);
@@ -90,6 +88,8 @@ public abstract class ArchiveBase<T> : FileBase, IList<T>
     {
         return Entries.GetEnumerator();
     }
+
+    public event ProgressChanged ProgressChanged;
 
     protected virtual void OnProgressChanged(object sender, ProgressChangedEventArgs e)
     {

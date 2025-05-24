@@ -61,7 +61,7 @@ internal struct CriTableField
     public object Value;
 }
 
-static class CriTableMasker
+internal static class CriTableMasker
 {
     public static void FindKeys(byte[] signature, out uint xor, out uint xorMultiplier)
     {
