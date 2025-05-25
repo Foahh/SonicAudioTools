@@ -29,6 +29,11 @@ public abstract class FileBase
         using Stream source = new MemoryStream(sourceByteArray);
         Read(source);
     }
+    
+    public virtual void Load(Stream sourceStream)
+    {
+        Read(sourceStream);
+    }
 
     public virtual void Save(string destinationFileName)
     {
