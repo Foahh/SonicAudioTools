@@ -7,7 +7,7 @@ public class DataPool
 {
     private readonly uint align = 1;
     private readonly long baseLength;
-    private readonly ArrayList items = new();
+    private readonly ArrayList items = [];
 
     public DataPool(uint align, long baseLength)
     {

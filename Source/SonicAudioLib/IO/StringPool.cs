@@ -9,7 +9,7 @@ public class StringPool
 {
     public const string AdxBlankString = "<NULL>";
     private readonly Encoding encoding = Encoding.Default;
-    private readonly List<StringItem> items = new();
+    private readonly List<StringItem> items = [];
 
     public StringPool(Encoding encoding)
     {

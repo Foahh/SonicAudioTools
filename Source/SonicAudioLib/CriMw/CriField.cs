@@ -6,7 +6,7 @@ namespace SonicAudioLib.CriMw;
 public class CriField
 {
     public static readonly Type[] FieldTypes =
-    {
+    [
         typeof(byte),
         typeof(sbyte),
         typeof(ushort),
@@ -20,10 +20,10 @@ public class CriField
         typeof(string),
         typeof(byte[]),
         typeof(Guid)
-    };
+    ];
 
     public static readonly object[] NullValues =
-    {
+    [
         (byte)0,
         (sbyte)0,
         (ushort)0,
@@ -37,7 +37,7 @@ public class CriField
         string.Empty,
         Array.Empty<byte>(),
         Guid.Empty
-    };
+    ];
 
     public CriField(string name, Type type)
     {

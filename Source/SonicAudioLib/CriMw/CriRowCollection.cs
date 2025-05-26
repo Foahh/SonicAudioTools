@@ -6,7 +6,7 @@ namespace SonicAudioLib.CriMw;
 
 public class CriRowCollection(CriTable parent) : IEnumerable<CriRow>
 {
-    private readonly List<CriRow> rows = new();
+    private readonly List<CriRow> rows = [];
 
     public CriRow this[int index] => rows[index];
 

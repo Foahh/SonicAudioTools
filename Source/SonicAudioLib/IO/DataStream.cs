@@ -444,7 +444,7 @@ public static class DataStream
             source.ReadExactly(Buffer, 0, 1);
         }
 
-        return encoding.GetString(characters.ToArray());
+        return encoding.GetString([.. characters]);
     }
 
     public static void WriteCString(Stream destination, string value)
