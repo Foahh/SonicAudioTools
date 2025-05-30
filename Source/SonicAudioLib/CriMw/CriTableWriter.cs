@@ -6,7 +6,7 @@ using System.Text;
 
 namespace SonicAudioLib.CriMw;
 
-public class CriTableWriter : IDisposable
+public sealed class CriTableWriter : IDisposable
 {
     public enum Status
     {
@@ -58,12 +58,7 @@ public class CriTableWriter : IDisposable
         }
     }
 
-    public void WriteStartTable()
-    {
-        WriteStartTable("(no name)");
-    }
-
-    public void WriteStartTable(string tableName)
+    public void WriteStartTable(string tableName = "(no name)")
     {
         if (CurrentStatus != Status.Begin)
         {
@@ -81,8 +76,8 @@ public class CriTableWriter : IDisposable
 
         header.TableNamePosition = (uint)stringPool.Put(tableName);
 
-        var buffer = new byte[32];
-        DestinationStream.Write(buffer, 0, 32);
+        Span<byte> buffer = stackalloc byte[32];
+        DestinationStream.Write(buffer);
     }
 
     public void WriteEndTable()
@@ -291,7 +286,7 @@ public class CriTableWriter : IDisposable
 
         DestinationStream.Seek(headerPosition + header.RowsPosition + header.RowCount * header.RowLength, SeekOrigin.Begin);
         var buffer = new byte[header.RowLength];
-        DestinationStream.Write(buffer, 0, buffer.Length);
+        DestinationStream.Write(buffer);
     }
 
     public void WriteValue(int fieldIndex, object rowValue)

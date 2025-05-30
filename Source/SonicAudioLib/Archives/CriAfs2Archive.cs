@@ -162,7 +162,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         var vldPool = new DataPool(Align, headerLength);
         vldPool.ProgressChanged += OnProgressChanged;
 
-        var orderedEntries = Entries.OrderBy(entry => entry.Id);
+        var orderedEntries = Entries.OrderBy(entry => entry.Id).ToArray();
         foreach (var afs2Entry in orderedEntries)
         {
             WriteByLength(idFieldLength, afs2Entry.Id);
@@ -177,12 +177,11 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         }
 
         WriteByLength(positionFieldLength, vldPool.Length);
-
-        // Copy the header to Header property and save it to destination
+        
         Header = mDestination.ToArray();
         mDestination.Close();
 
-        destination.Write(Header, 0, Header.Length);
+        destination.Write(Header);
         vldPool.Write(destination);
         vldPool.Clear();
     }

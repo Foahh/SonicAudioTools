@@ -18,9 +18,7 @@ public class CriTableReader : IDisposable
     {
         SourceStream = source;
         header = new CriTableHeader();
-        fields =
-        [
-        ];
+        fields = [];
         this.leaveOpen = leaveOpen;
 
         ReadTable();

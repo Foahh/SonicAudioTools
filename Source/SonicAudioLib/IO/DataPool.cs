@@ -90,10 +90,7 @@ public class DataPool
         {
             DataStream.Pad(destination, align);
 
-            if (item is byte[] bytes)
-            {
-                destination.Write(bytes, 0, bytes.Length);
-            }
+            if (item is byte[] bytes)  destination.Write(bytes);
 
             else if (item is Stream stream)
             {

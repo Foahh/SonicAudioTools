@@ -32,8 +32,8 @@ public class CriField
         0,
         (ulong)0,
         (long)0,
-        0.0f,
-        (double)0.0f,
+        0f,
+        0.0,
         string.Empty,
         Array.Empty<byte>(),
         Guid.Empty
