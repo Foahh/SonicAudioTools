@@ -159,8 +159,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         DataStream.WriteUInt16(mDestination, Align);
         DataStream.WriteUInt16(mDestination, SubKey);
 
-        var vldPool = new DataPool(Align, headerLength);
-        vldPool.ProgressChanged += OnProgressChanged;
+        var vldPool = new DataPool(Align, headerLength) { Progress = Progress };
 
         var orderedEntries = Entries.OrderBy(entry => entry.Id).ToArray();
         foreach (var afs2Entry in orderedEntries)
@@ -177,7 +176,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         }
 
         WriteByLength(positionFieldLength, vldPool.Length);
-        
+
         Header = mDestination.ToArray();
         mDestination.Close();
 

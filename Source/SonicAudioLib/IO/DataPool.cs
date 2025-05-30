@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.IO;
 
 namespace SonicAudioLib.IO;
@@ -32,7 +33,7 @@ public class DataPool
 
     public long Align => align;
 
-    public event ProgressChanged ProgressChanged;
+    public IProgress<double> Progress { get; init; }
 
     public long Put(byte[] data)
     {
@@ -90,7 +91,7 @@ public class DataPool
         {
             DataStream.Pad(destination, align);
 
-            if (item is byte[] bytes)  destination.Write(bytes);
+            if (item is byte[] bytes) destination.Write(bytes);
 
             else if (item is Stream stream)
             {
@@ -104,7 +105,7 @@ public class DataPool
                 source.CopyTo(destination);
             }
 
-            ProgressChanged?.Invoke(this, new ProgressChangedEventArgs((destination.Position - Position) / (double)(Length - baseLength) * 100.0));
+            Progress.Report((destination.Position - Position) / (double)(Length - baseLength) * 100.0);
         }
     }
 

@@ -1,5 +1,6 @@
 ﻿using SonicAudioLib.FileBases;
 using SonicAudioLib.IO;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -89,10 +90,5 @@ public abstract class ArchiveBase<T> : FileBase, IList<T>
         return Entries.GetEnumerator();
     }
 
-    public event ProgressChanged ProgressChanged;
-
-    protected virtual void OnProgressChanged(object sender, ProgressChangedEventArgs e)
-    {
-        ProgressChanged?.Invoke(this, e);
-    }
+    public IProgress<double> Progress { get; set; }
 }
