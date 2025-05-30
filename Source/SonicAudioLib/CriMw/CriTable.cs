@@ -72,14 +72,14 @@ public class CriTable : FileXmlBase
         foreach (var criField in Fields)
         {
             var useDefaultValue = false;
-            object defaultValue = null;
+            object? defaultValue = null;
 
             if (Rows.Count > 1)
             {
                 useDefaultValue = true;
                 defaultValue = Rows[0][criField];
 
-                if (Rows.Any(row => !row[criField].Equals(defaultValue)))
+                if (Rows.Any(row => !Equals(row[criField], defaultValue)))
                 {
                     useDefaultValue = false;
                 }
@@ -114,28 +114,46 @@ public class CriTable : FileXmlBase
     {
         var document = XDocument.Load(reader);
 
-        foreach (var element in document.Root.Element(nameof(Fields)).Elements(nameof(CriField)))
+        var root = document.Root;
+        if (root is null) throw new InvalidOperationException("Root element cannot be null.");
+
+        var fieldsElement = root.Element(nameof(Fields));
+        if (fieldsElement is null) throw new InvalidOperationException("Fields element cannot be null.");
+
+        foreach (var element in fieldsElement.Elements(nameof(CriField)))
         {
-            Fields.Add(
-                element.Element(nameof(CriField.FieldName)).Value,
-                Type.GetType(element.Element(nameof(CriField.FieldType)).Value)
-            );
+            var fieldName = element.Element(nameof(CriField.FieldName));
+            if (fieldName is null) throw new InvalidOperationException("FieldName element cannot be null.");
+
+            var fieldType = element.Element(nameof(CriField.FieldType));
+            if (fieldType is null) throw new InvalidOperationException("FieldType element cannot be null.");
+
+            var type = Type.GetType(fieldType.Value);
+            if (type is null) throw new InvalidOperationException($"FieldType '{fieldType.Value}' could not be resolved.");
+
+            Fields.Add(fieldName.Value, type);
         }
 
-        foreach (var element in document.Root.Element(nameof(Rows)).Elements(nameof(CriRow)))
+        var rowsElement = root.Element(nameof(Rows));
+        if (rowsElement is null) throw new InvalidOperationException("Rows element cannot be null.");
+
+
+        foreach (var element in rowsElement.Elements(nameof(CriRow)))
         {
             var row = NewRow();
 
             foreach (var record in row.Records)
             {
+                var fieldElement = element.Element(record.Field.FieldName);
+                if (fieldElement is null) throw new InvalidOperationException($"Field element '{record.Field.FieldName}' not found in row.");
+
                 if (record.Field.FieldType == typeof(byte[]))
                 {
-                    record.Value = Convert.FromBase64String(element.Element(record.Field.FieldName).Value);
+                    record.Value = Convert.FromBase64String(fieldElement.Value);
                 }
-
                 else
                 {
-                    record.Value = Convert.ChangeType(element.Element(record.Field.FieldName).Value, record.Field.FieldType);
+                    record.Value = Convert.ChangeType(fieldElement.Value, record.Field.FieldType);
                 }
             }
 
@@ -146,7 +164,10 @@ public class CriTable : FileXmlBase
     public override void WriteXml(XmlWriter writer)
     {
         var document = new XDocument(new XElement(nameof(CriTable)));
-        document.Root.Add(new XElement(nameof(TableName), TableName));
+        var root = document.Root;
+
+        if (root is null) throw new InvalidOperationException("Root element cannot be null.");
+        root.Add(new XElement(nameof(TableName), TableName));
 
         var fieldsElement = new XElement(nameof(Fields));
 
@@ -162,7 +183,7 @@ public class CriTable : FileXmlBase
             fieldsElement.Add(fieldElement);
         }
 
-        document.Root.Add(fieldsElement);
+        root.Add(fieldsElement);
 
         var rowsElement = new XElement(nameof(Rows));
 
@@ -186,7 +207,7 @@ public class CriTable : FileXmlBase
             rowsElement.Add(rowElement);
         }
 
-        document.Root.Add(rowsElement);
+        root.Add(rowsElement);
         document.Save(writer);
     }
 }

@@ -63,9 +63,9 @@ public class StringPool
         items.Clear();
     }
 
-    private class StringItem
+    private sealed class StringItem
     {
-        public string Value { get; set; }
+        public required string Value { get; set; }
         public long Position { get; set; }
     }
 }

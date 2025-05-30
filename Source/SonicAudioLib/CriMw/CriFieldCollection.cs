@@ -11,7 +11,7 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 
     public CriField this[int index] => fields[index];
 
-    public CriField this[string name]
+    public CriField? this[string name]
     {
         get
         {
@@ -21,7 +21,7 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 
     public int Count => fields.Count;
 
-    public CriTable Parent { get; internal set; } = parent;
+    public CriTable? Parent { get; internal set; } = parent;
 
     public IEnumerator<CriField> GetEnumerator()
     {
@@ -47,7 +47,7 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
         return criField;
     }
 
-    public CriField Add(string name, Type type, object defaultValue)
+    public CriField Add(string name, Type type, object? defaultValue)
     {
         var criField = new CriField(name, type, defaultValue);
         Add(criField);
@@ -72,7 +72,11 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
     {
         fields.Remove(criField);
 
-        // Update the rows
+        if (Parent is null)
+        {
+            return;
+        }
+        
         foreach (var criRow in Parent.Rows)
         {
             criRow.Records.RemoveAll(record => record.Field == criField);

@@ -33,11 +33,11 @@ public class DataPool
 
     public long Align => align;
 
-    public IProgress<double> Progress { get; init; }
+    public IProgress<double>? Progress { get; init; }
 
-    public long Put(byte[] data)
+    public long Put(byte[]? data)
     {
-        if (data == null || data.Length <= 0)
+        if (data is not { Length: > 0 })
         {
             return 0;
         }
@@ -51,9 +51,9 @@ public class DataPool
         return position;
     }
 
-    public long Put(Stream stream)
+    public long Put(Stream? stream)
     {
-        if (stream == null || stream.Length <= 0)
+        if (stream is not { Length: > 0 })
         {
             return 0;
         }
@@ -67,9 +67,9 @@ public class DataPool
         return position;
     }
 
-    public long Put(FileInfo fileInfo)
+    public long Put(FileInfo? fileInfo)
     {
-        if (fileInfo == null || fileInfo.Length <= 0)
+        if (fileInfo is not { Length: > 0 })
         {
             return 0;
         }
@@ -105,7 +105,7 @@ public class DataPool
                 source.CopyTo(destination);
             }
 
-            Progress.Report((destination.Position - Position) / (double)(Length - baseLength) * 100.0);
+            Progress?.Report((destination.Position - Position) / (double)(Length - baseLength) * 100.0);
         }
     }
 

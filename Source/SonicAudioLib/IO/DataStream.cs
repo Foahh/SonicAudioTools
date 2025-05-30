@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SonicAudioLib.IO;
@@ -179,8 +178,10 @@ public static partial class DataStream
         return ReadCString(source, Encoding.ASCII);
     }
 
-    public static string ReadCString(Stream source, Encoding encoding)
+    public static string ReadCString(Stream source, Encoding? encoding)
     {
+        if (encoding is null) throw new ArgumentNullException(nameof(encoding));
+
         var characters = new List<byte>();
 
         Span<byte> buffer = stackalloc byte[1];

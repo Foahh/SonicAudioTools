@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace SonicAudioLib.FileBases;
 
@@ -24,12 +25,12 @@ public abstract class FileBase
         Load(sourceFileName, 4096);
     }
 
-    public virtual void Load(byte[] sourceByteArray)
+    public virtual void Load(byte[]? sourceByteArray)
     {
-        using Stream source = new MemoryStream(sourceByteArray);
+        using Stream source = new MemoryStream(sourceByteArray!);
         Read(source);
     }
-    
+
     public virtual void Load(Stream sourceStream)
     {
         Read(sourceStream);

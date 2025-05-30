@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SonicAudioLib.CriMw;
 
-public class CriTableReader : IDisposable
+public sealed class CriTableReader : IDisposable
 {
     private readonly List<CriTableField> fields;
     private readonly bool leaveOpen;
@@ -24,9 +24,9 @@ public class CriTableReader : IDisposable
         ReadTable();
     }
 
-    public object this[int fieldIndex] => GetValue(fieldIndex);
+    public object? this[int fieldIndex] => GetValue(fieldIndex);
 
-    public object this[string fieldName] => GetValue(fieldName);
+    public object? this[string fieldName] => GetValue(fieldName);
 
     public ushort NumberOfFields => header.FieldCount;
 
@@ -38,7 +38,7 @@ public class CriTableReader : IDisposable
 
     public Stream SourceStream { get; private set; }
 
-    public Encoding EncodingType { get; private set; }
+    public Encoding? EncodingType { get; private set; }
 
     public void Dispose()
     {
@@ -108,16 +108,16 @@ public class CriTableReader : IDisposable
         for (ushort i = 0; i < header.FieldCount; i++)
         {
             var field = new CriTableField();
-            field.Flag = (CriFieldFlag)DataStream.ReadByte(SourceStream);
+            field.Flags = (CriFieldFlags)DataStream.ReadByte(SourceStream);
 
-            if (field.Flag.HasFlag(CriFieldFlag.Name))
+            if (field.Flags.HasFlag(CriFieldFlags.Name))
             {
                 field.Name = ReadString();
             }
 
-            if (field.Flag.HasFlag(CriFieldFlag.DefaultValue))
+            if (field.Flags.HasFlag(CriFieldFlags.DefaultValue))
             {
-                if (field.Flag.HasFlag(CriFieldFlag.Data))
+                if (field.Flags.HasFlag(CriFieldFlags.Data))
                 {
                     field.Position = DataStream.ReadUInt32Be(SourceStream);
                     field.Length = DataStream.ReadUInt32Be(SourceStream);
@@ -125,41 +125,41 @@ public class CriTableReader : IDisposable
 
                 else
                 {
-                    field.Value = ReadValue(field.Flag);
+                    field.Value = ReadValue(field.Flags);
                 }
             }
 
             // Not even per row, and not even constant value? Then there's no storage.
-            else if (!field.Flag.HasFlag(CriFieldFlag.RowStorage) && !field.Flag.HasFlag(CriFieldFlag.DefaultValue))
+            else if (!field.Flags.HasFlag(CriFieldFlags.RowStorage) && !field.Flags.HasFlag(CriFieldFlags.DefaultValue))
             {
-                field.Value = CriField.NullValues[(byte)field.Flag & 0x0F];
+                field.Value = CriField.NullValues[(byte)field.Flags & 0x0F];
             }
 
             // Row storage, calculate the offset
-            if (field.Flag.HasFlag(CriFieldFlag.RowStorage))
+            if (field.Flags.HasFlag(CriFieldFlags.RowStorage))
             {
                 field.Offset = offset;
 
-                switch (field.Flag & CriFieldFlag.TypeMask)
+                switch (field.Flags & CriFieldFlags.TypeMask)
                 {
-                    case CriFieldFlag.Byte:
-                    case CriFieldFlag.SByte:
+                    case CriFieldFlags.Byte:
+                    case CriFieldFlags.SByte:
                         offset += 1;
                         break;
-                    case CriFieldFlag.Int16:
-                    case CriFieldFlag.UInt16:
+                    case CriFieldFlags.Int16:
+                    case CriFieldFlags.UInt16:
                         offset += 2;
                         break;
-                    case CriFieldFlag.Int32:
-                    case CriFieldFlag.UInt32:
-                    case CriFieldFlag.Single:
-                    case CriFieldFlag.String:
+                    case CriFieldFlags.Int32:
+                    case CriFieldFlags.UInt32:
+                    case CriFieldFlags.Single:
+                    case CriFieldFlags.String:
                         offset += 4;
                         break;
-                    case CriFieldFlag.Int64:
-                    case CriFieldFlag.UInt64:
-                    case CriFieldFlag.Double:
-                    case CriFieldFlag.Data:
+                    case CriFieldFlags.Int64:
+                    case CriFieldFlags.UInt64:
+                    case CriFieldFlags.Double:
+                    case CriFieldFlags.Data:
                         offset += 8;
                         break;
                 }
@@ -176,30 +176,30 @@ public class CriTableReader : IDisposable
 
     public Type GetFieldType(int fieldIndex)
     {
-        return CriField.FieldTypes[(byte)fields[fieldIndex].Flag & 0x0F];
+        return CriField.FieldTypes[(byte)fields[fieldIndex].Flags & 0x0F];
     }
 
     public Type GetFieldType(string fieldName)
     {
-        return CriField.FieldTypes[(byte)fields[GetFieldIndex(fieldName)].Flag & 0x0F];
+        return CriField.FieldTypes[(byte)fields[GetFieldIndex(fieldName)].Flags & 0x0F];
     }
 
-    public object GetFieldValue(int fieldIndex)
+    internal CriFieldFlags GetFieldFlag(string fieldName)
+    {
+        return fields[GetFieldIndex(fieldName)].Flags;
+    }
+
+    internal CriFieldFlags GetFieldFlag(int fieldIndex)
+    {
+        return fields[fieldIndex].Flags;
+    }
+
+    public object? GetFieldValue(int fieldIndex)
     {
         return fields[fieldIndex].Value;
     }
 
-    internal CriFieldFlag GetFieldFlag(string fieldName)
-    {
-        return fields[GetFieldIndex(fieldName)].Flag;
-    }
-
-    internal CriFieldFlag GetFieldFlag(int fieldIndex)
-    {
-        return fields[fieldIndex].Flag;
-    }
-
-    public object GetFieldValue(string fieldName)
+    public object? GetFieldValue(string fieldName)
     {
         return fields[GetFieldIndex(fieldName)].Value;
     }
@@ -251,13 +251,13 @@ public class CriTableReader : IDisposable
         return true;
     }
 
-    public object[] GetValueArray()
+    public object?[] GetValueArray()
     {
-        var values = new object[header.FieldCount];
+        var values = new object?[header.FieldCount];
 
         for (var i = 0; i < header.FieldCount; i++)
         {
-            if (fields[i].Flag.HasFlag(CriFieldFlag.Data))
+            if (fields[i].Flags.HasFlag(CriFieldFlags.Data))
             {
                 values[i] = GetData(i);
             }
@@ -279,16 +279,16 @@ public class CriTableReader : IDisposable
         }
     }
 
-    public object GetValue(int fieldIndex)
+    public object? GetValue(int fieldIndex)
     {
         if (fieldIndex < 0 || fieldIndex >= fields.Count)
         {
             return null;
         }
 
-        if (!fields[fieldIndex].Flag.HasFlag(CriFieldFlag.RowStorage))
+        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
-            if (fields[fieldIndex].Flag.HasFlag(CriFieldFlag.Data))
+            if (fields[fieldIndex].Flags.HasFlag(CriFieldFlags.Data))
             {
                 return new SubStream(SourceStream, 0, 0);
             }
@@ -297,163 +297,165 @@ public class CriTableReader : IDisposable
         }
 
         GoToValue(fieldIndex);
-        return ReadValue(fields[fieldIndex].Flag);
+        return ReadValue(fields[fieldIndex].Flags);
     }
 
-    public object GetValue(string fieldName)
+    public object? GetValue(string fieldName)
     {
         return GetValue(GetFieldIndex(fieldName));
     }
 
-    public T GetValue<T>(int fieldIndex)
+    public T? GetValue<T>(int fieldIndex)
     {
-        return (T)GetValue(fieldIndex);
+        return (T?)GetValue(fieldIndex);
     }
 
-    public T GetValue<T>(string fieldName)
+    public T? GetValue<T>(string fieldName)
     {
-        return (T)GetValue(fieldName);
+        return (T?)GetValue(fieldName);
     }
 
-    public byte GetByte(int fieldIndex)
+    public byte? GetByte(int fieldIndex)
     {
-        return (byte)GetValue(fieldIndex);
+        return (byte?)GetValue(fieldIndex);
     }
 
-    public byte GetByte(string fieldName)
+    public byte? GetByte(string fieldName)
     {
-        return (byte)GetValue(fieldName);
+        return (byte?)GetValue(fieldName);
     }
 
-    public sbyte GetSByte(int fieldIndex)
+    public sbyte? GetSByte(int fieldIndex)
     {
-        return (sbyte)GetValue(fieldIndex);
+        return (sbyte?)GetValue(fieldIndex);
     }
 
-    public sbyte GetSByte(string fieldName)
+    public sbyte? GetSByte(string fieldName)
     {
-        return (sbyte)GetValue(fieldName);
+        return (sbyte?)GetValue(fieldName);
     }
 
-    public ushort GetUInt16(int fieldIndex)
+    public ushort? GetUInt16(int fieldIndex)
     {
-        return (ushort)GetValue(fieldIndex);
+        return (ushort?)GetValue(fieldIndex);
     }
 
-    public ushort GetUInt16(string fieldName)
+    public ushort? GetUInt16(string fieldName)
     {
-        return (ushort)GetValue(fieldName);
+        return (ushort?)GetValue(fieldName);
     }
 
-    public short GetInt16(int fieldIndex)
+    public short? GetInt16(int fieldIndex)
     {
-        return (short)GetValue(fieldIndex);
+        return (short?)GetValue(fieldIndex);
     }
 
-    public short GetInt16(string fieldName)
+    public short? GetInt16(string fieldName)
     {
-        return (short)GetValue(fieldName);
+        return (short?)GetValue(fieldName);
     }
 
-    public uint GetUInt32(int fieldIndex)
+    public uint? GetUInt32(int fieldIndex)
     {
-        return (uint)GetValue(fieldIndex);
+        return (uint?)GetValue(fieldIndex);
     }
 
-    public uint GetUInt32(string fieldName)
+    public uint? GetUInt32(string fieldName)
     {
-        return (uint)GetValue(fieldName);
+        return (uint?)GetValue(fieldName);
     }
 
-    public int GetInt32(int fieldIndex)
+    public int? GetInt32(int fieldIndex)
     {
-        return (int)GetValue(fieldIndex);
+        return (int?)GetValue(fieldIndex);
     }
 
-    public int GetInt32(string fieldName)
+    public int? GetInt32(string fieldName)
     {
-        return (int)GetValue(fieldName);
+        return (int?)GetValue(fieldName);
     }
 
-    public ulong GetUInt64(int fieldIndex)
+    public ulong? GetUInt64(int fieldIndex)
     {
-        return (ulong)GetValue(fieldIndex);
+        return (ulong?)GetValue(fieldIndex);
     }
 
-    public ulong GetUInt64(string fieldName)
+    public ulong? GetUInt64(string fieldName)
     {
-        return (ulong)GetValue(fieldName);
+        return (ulong?)GetValue(fieldName);
     }
 
-    public long GetInt64(int fieldIndex)
+    public long? GetInt64(int fieldIndex)
     {
-        return (long)GetValue(fieldIndex);
+        return (long?)GetValue(fieldIndex);
     }
 
-    public long GetInt64(string fieldName)
+    public long? GetInt64(string fieldName)
     {
-        return (long)GetValue(fieldName);
+        return (long?)GetValue(fieldName);
     }
 
-    public float GetSingle(int fieldIndex)
+    public float? GetSingle(int fieldIndex)
     {
-        return (float)GetValue(fieldIndex);
+        return (float?)GetValue(fieldIndex);
     }
 
-    public float GetSingle(string fieldName)
+    public float? GetSingle(string fieldName)
     {
-        return (float)GetValue(fieldName);
+        return (float?)GetValue(fieldName);
     }
 
-    public double GetDouble(int fieldIndex)
+    public double? GetDouble(int fieldIndex)
     {
-        return (double)GetValue(fieldIndex);
+        return (double?)GetValue(fieldIndex);
     }
 
-    public double GetDouble(string fieldName)
+    public double? GetDouble(string fieldName)
     {
-        return (double)GetValue(fieldName);
+        return (double?)GetValue(fieldName);
     }
 
-    public string GetString(int fieldIndex)
+    public string? GetString(int fieldIndex)
     {
-        return (string)GetValue(fieldIndex);
+        return (string?)GetValue(fieldIndex);
     }
 
-    public string GetString(string fieldName)
+    public string? GetString(string fieldName)
     {
-        return (string)GetValue(fieldName);
+        return (string?)GetValue(fieldName);
     }
 
-    public SubStream GetSubStream(int fieldIndex)
+    public SubStream? GetSubStream(int fieldIndex)
     {
-        return (SubStream)GetValue(fieldIndex);
+        return (SubStream?)GetValue(fieldIndex);
     }
 
-    public SubStream GetSubStream(string fieldName)
+    public SubStream? GetSubStream(string fieldName)
     {
-        return (SubStream)GetValue(fieldName);
+        return (SubStream?)GetValue(fieldName);
     }
 
-    public byte[] GetData(int fieldIndex)
+    public byte[]? GetData(int fieldIndex)
     {
         using var ss = GetSubStream(fieldIndex);
-        return ss.ToArray();
+        return ss?.ToArray();
     }
 
-    public byte[] GetData(string fieldName)
+    public byte[]? GetData(string fieldName)
     {
         return GetData(GetFieldIndex(fieldName));
     }
 
     public CriTableReader GetTableReader(string fieldName)
     {
-        return new CriTableReader(GetSubStream(fieldName), false);
+        var stream = GetSubStream(fieldName) ?? throw new InvalidOperationException($"Field '{fieldName}' does not contain a valid substream.");
+        return new CriTableReader(stream, false);
     }
 
     public CriTableReader GetTableReader(int fieldIndex)
     {
-        return new CriTableReader(GetSubStream(fieldIndex), false);
+        var stream = GetSubStream(fieldIndex) ?? throw new InvalidOperationException($"Field at index {fieldIndex} does not contain a valid substream.");
+        return new CriTableReader(stream, false);
     }
 
     public uint GetLength(int fieldIndex)
@@ -463,7 +465,7 @@ public class CriTableReader : IDisposable
             return 0;
         }
 
-        if (!fields[fieldIndex].Flag.HasFlag(CriFieldFlag.RowStorage))
+        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
             return fields[fieldIndex].Length;
         }
@@ -486,7 +488,7 @@ public class CriTableReader : IDisposable
             return 0;
         }
 
-        if (!fields[fieldIndex].Flag.HasFlag(CriFieldFlag.RowStorage))
+        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
             return fields[fieldIndex].Position;
         }
@@ -495,29 +497,29 @@ public class CriTableReader : IDisposable
         return (uint)(headerPosition + header.DataPoolPosition + DataStream.ReadUInt32Be(SourceStream));
     }
 
-    public uint GetPosition(string fieldName)
+    public uint? GetPosition(string fieldName)
     {
         return GetPosition(GetFieldIndex(fieldName));
     }
 
-    public bool GetBoolean(int fieldIndex)
+    public bool? GetBoolean(int fieldIndex)
     {
-        return (byte)GetValue(fieldIndex) > 0;
+        return (byte?)GetValue(fieldIndex) > 0;
     }
 
-    public bool GetBoolean(string fieldName)
+    public bool? GetBoolean(string fieldName)
     {
-        return (byte)GetValue(fieldName) > 0;
+        return (byte?)GetValue(fieldName) > 0;
     }
 
-    public Guid GetGuid(int fieldIndex)
+    public Guid? GetGuid(int fieldIndex)
     {
-        return (Guid)GetValue(fieldIndex);
+        return (Guid?)GetValue(fieldIndex);
     }
 
-    public Guid GetGuid(string fieldName)
+    public Guid? GetGuid(string fieldName)
     {
-        return (Guid)GetValue(fieldName);
+        return (Guid?)GetValue(fieldName);
     }
 
     private string ReadString()
@@ -538,33 +540,33 @@ public class CriTableReader : IDisposable
         return readString;
     }
 
-    private object ReadValue(CriFieldFlag fieldFlag)
+    private object? ReadValue(CriFieldFlags fieldFlags)
     {
-        switch (fieldFlag & CriFieldFlag.TypeMask)
+        switch (fieldFlags & CriFieldFlags.TypeMask)
         {
-            case CriFieldFlag.Byte:
+            case CriFieldFlags.Byte:
                 return DataStream.ReadByte(SourceStream);
-            case CriFieldFlag.SByte:
+            case CriFieldFlags.SByte:
                 return DataStream.ReadSByte(SourceStream);
-            case CriFieldFlag.UInt16:
+            case CriFieldFlags.UInt16:
                 return DataStream.ReadUInt16Be(SourceStream);
-            case CriFieldFlag.Int16:
+            case CriFieldFlags.Int16:
                 return DataStream.ReadInt16Be(SourceStream);
-            case CriFieldFlag.UInt32:
+            case CriFieldFlags.UInt32:
                 return DataStream.ReadUInt32Be(SourceStream);
-            case CriFieldFlag.Int32:
+            case CriFieldFlags.Int32:
                 return DataStream.ReadInt32Be(SourceStream);
-            case CriFieldFlag.UInt64:
+            case CriFieldFlags.UInt64:
                 return DataStream.ReadUInt64Be(SourceStream);
-            case CriFieldFlag.Int64:
+            case CriFieldFlags.Int64:
                 return DataStream.ReadInt64Be(SourceStream);
-            case CriFieldFlag.Single:
+            case CriFieldFlags.Single:
                 return DataStream.ReadSingleBe(SourceStream);
-            case CriFieldFlag.Double:
+            case CriFieldFlags.Double:
                 return DataStream.ReadDoubleBe(SourceStream);
-            case CriFieldFlag.String:
+            case CriFieldFlags.String:
                 return ReadString();
-            case CriFieldFlag.Data:
+            case CriFieldFlags.Data:
                 {
                     var position = DataStream.ReadUInt32Be(SourceStream);
                     var length = DataStream.ReadUInt32Be(SourceStream);
@@ -582,7 +584,7 @@ public class CriTableReader : IDisposable
 
                     return new SubStream(SourceStream, headerPosition + header.DataPoolPosition + position, length);
                 }
-            case CriFieldFlag.Guid:
+            case CriFieldFlags.Guid:
                 return new Guid(DataStream.ReadBytes(SourceStream, 16));
         }
 

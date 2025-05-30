@@ -153,33 +153,33 @@ public sealed class CriTableWriter : IDisposable
         CurrentStatus = Status.FieldCollection;
     }
 
-    public void WriteField(string fieldName, Type fieldType, object defaultValue)
+    public void WriteField(string fieldName, Type fieldType, object? defaultValue)
     {
         if (CurrentStatus != Status.FieldCollection)
         {
             WriteStartFieldCollection();
         }
 
-        var fieldFlag = (CriFieldFlag)Array.IndexOf(CriField.FieldTypes, fieldType);
+        var fieldFlag = (CriFieldFlags)Array.IndexOf(CriField.FieldTypes, fieldType);
 
         if (!string.IsNullOrEmpty(fieldName))
         {
-            fieldFlag |= CriFieldFlag.Name;
+            fieldFlag |= CriFieldFlags.Name;
         }
 
         if (defaultValue != null)
         {
-            fieldFlag |= CriFieldFlag.DefaultValue;
+            fieldFlag |= CriFieldFlags.DefaultValue;
         }
 
         var field = new CriTableField
         {
-            Flag = fieldFlag,
+            Flags = fieldFlag,
             Name = fieldName,
             Value = defaultValue
         };
 
-        DataStream.WriteByte(DestinationStream, (byte)field.Flag);
+        DataStream.WriteByte(DestinationStream, (byte)field.Flags);
 
         if (!string.IsNullOrEmpty(fieldName))
         {
@@ -202,20 +202,20 @@ public sealed class CriTableWriter : IDisposable
             WriteStartFieldCollection();
         }
 
-        var fieldFlag = (CriFieldFlag)Array.IndexOf(CriField.FieldTypes, fieldType) | CriFieldFlag.RowStorage;
+        var fieldFlag = (CriFieldFlags)Array.IndexOf(CriField.FieldTypes, fieldType) | CriFieldFlags.RowStorage;
 
         if (!string.IsNullOrEmpty(fieldName))
         {
-            fieldFlag |= CriFieldFlag.Name;
+            fieldFlag |= CriFieldFlags.Name;
         }
 
         var field = new CriTableField
         {
-            Flag = fieldFlag,
+            Flags = fieldFlag,
             Name = fieldName
         };
 
-        DataStream.WriteByte(DestinationStream, (byte)field.Flag);
+        DataStream.WriteByte(DestinationStream, (byte)field.Flags);
 
         if (!string.IsNullOrEmpty(fieldName))
         {
@@ -223,26 +223,26 @@ public sealed class CriTableWriter : IDisposable
         }
 
         field.Offset = header.RowLength;
-        switch (field.Flag & CriFieldFlag.TypeMask)
+        switch (field.Flags & CriFieldFlags.TypeMask)
         {
-            case CriFieldFlag.Byte:
-            case CriFieldFlag.SByte:
+            case CriFieldFlags.Byte:
+            case CriFieldFlags.SByte:
                 header.RowLength += 1;
                 break;
-            case CriFieldFlag.Int16:
-            case CriFieldFlag.UInt16:
+            case CriFieldFlags.Int16:
+            case CriFieldFlags.UInt16:
                 header.RowLength += 2;
                 break;
-            case CriFieldFlag.Int32:
-            case CriFieldFlag.UInt32:
-            case CriFieldFlag.Single:
-            case CriFieldFlag.String:
+            case CriFieldFlags.Int32:
+            case CriFieldFlags.UInt32:
+            case CriFieldFlags.Single:
+            case CriFieldFlags.String:
                 header.RowLength += 4;
                 break;
-            case CriFieldFlag.Int64:
-            case CriFieldFlag.UInt64:
-            case CriFieldFlag.Double:
-            case CriFieldFlag.Data:
+            case CriFieldFlags.Int64:
+            case CriFieldFlags.UInt64:
+            case CriFieldFlags.Double:
+            case CriFieldFlags.Data:
                 header.RowLength += 8;
                 break;
         }
@@ -289,9 +289,9 @@ public sealed class CriTableWriter : IDisposable
         DestinationStream.Write(buffer);
     }
 
-    public void WriteValue(int fieldIndex, object rowValue)
+    public void WriteValue(int fieldIndex, object? rowValue)
     {
-        if (fieldIndex >= fields.Count || fieldIndex < 0 || !fields[fieldIndex].Flag.HasFlag(CriFieldFlag.RowStorage) || rowValue == null)
+        if (fieldIndex >= fields.Count || fieldIndex < 0 || !fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage) || rowValue == null)
         {
             return;
         }
@@ -320,7 +320,7 @@ public sealed class CriTableWriter : IDisposable
         CurrentStatus = Status.Idle;
     }
 
-    public void WriteRow(bool close, params object[] rowValues)
+    public void WriteRow(bool close, params object?[] rowValues)
     {
         WriteStartRow();
 

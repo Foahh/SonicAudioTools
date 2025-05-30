@@ -5,8 +5,8 @@ namespace SonicAudioLib.CriMw;
 
 internal class CriRowRecord
 {
-    public CriField Field { get; set; }
-    public object Value { get; set; }
+    public required CriField Field { get; set; }
+    public required object? Value { get; set; }
 }
 
 public class CriRow : IEnumerable
@@ -16,7 +16,7 @@ public class CriRow : IEnumerable
         Parent = parent;
     }
 
-    public object this[CriField criField]
+    public object? this[CriField criField]
     {
         get
         {
@@ -29,7 +29,7 @@ public class CriRow : IEnumerable
         }
     }
 
-    public object this[int index]
+    public object? this[int index]
     {
         get
         {
@@ -52,7 +52,7 @@ public class CriRow : IEnumerable
         }
     }
 
-    public object this[string name]
+    public object? this[string name]
     {
         get
         {
@@ -67,9 +67,7 @@ public class CriRow : IEnumerable
 
     public CriTable Parent { get; internal set; }
 
-    internal List<CriRowRecord> Records { get; } =
-    [
-    ];
+    internal List<CriRowRecord> Records { get; } = [];
 
     public int FieldCount => Records.Count;
 
@@ -79,28 +77,26 @@ public class CriRow : IEnumerable
         {
             yield return record.Value;
         }
-
-        yield break;
     }
 
-    public T GetValue<T>(CriField criField)
+    public T? GetValue<T>(CriField criField)
     {
-        return (T)this[criField];
+        return (T?)this[criField];
     }
 
-    public T GetValue<T>(string fieldName)
+    public T? GetValue<T>(string fieldName)
     {
-        return (T)this[fieldName];
+        return (T?)this[fieldName];
     }
 
-    public T GetValue<T>(int fieldIndex)
+    public T? GetValue<T>(int fieldIndex)
     {
-        return (T)this[fieldIndex];
+        return (T?)this[fieldIndex];
     }
 
-    public object[] GetValueArray()
+    public object?[] GetValueArray()
     {
-        var values = new object[Records.Count];
+        var values = new object?[Records.Count];
 
         for (var i = 0; i < Records.Count; i++)
         {

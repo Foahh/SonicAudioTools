@@ -27,7 +27,7 @@ internal struct CriTableHeader
 }
 
 [Flags]
-internal enum CriFieldFlag : byte
+internal enum CriFieldFlags : byte
 {
     Name = 16,
     DefaultValue = 32,
@@ -53,12 +53,12 @@ internal enum CriFieldFlag : byte
 [StructLayout(LayoutKind.Sequential)]
 internal struct CriTableField
 {
-    public CriFieldFlag Flag;
+    public CriFieldFlags Flags;
     public string Name;
     public uint Position;
     public uint Length;
     public uint Offset;
-    public object Value;
+    public object? Value;
 }
 
 internal static class CriTableMasker

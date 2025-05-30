@@ -1,6 +1,6 @@
 ﻿namespace SonicAudioLib;
 
-public class Helpers
+public static class Helpers
 {
     public static long Align(long value, long alignment)
     {

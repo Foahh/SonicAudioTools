@@ -17,7 +17,7 @@ public abstract class EntryBase
         set;
     }
 
-    public virtual Stream Stream { get; set; }
+    public virtual Stream? Stream { get; set; }
 
     public virtual Stream Open(Stream source)
     {
@@ -90,5 +90,5 @@ public abstract class ArchiveBase<T> : FileBase, IList<T>
         return Entries.GetEnumerator();
     }
 
-    public IProgress<double> Progress { get; set; }
+    public IProgress<double>? Progress { get; set; }
 }

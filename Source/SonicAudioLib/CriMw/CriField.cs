@@ -45,7 +45,7 @@ public class CriField
         FieldType = type;
     }
 
-    public CriField(string name, Type type, object defaultValue)
+    public CriField(string name, Type type, object? defaultValue)
     {
         FieldName = name;
         FieldType = type;
@@ -56,18 +56,17 @@ public class CriField
 
     public Type FieldType { get; }
 
-    public object DefaultValue
+    public object? DefaultValue
     {
         get;
-
         set => field = ConvertObject(value);
     }
 
     public string FieldName { get; }
 
-    public CriTable Parent { get; internal set; }
+    public CriTable? Parent { get; internal set; }
 
-    public object ConvertObject(object obj)
+    public object? ConvertObject(object? obj)
     {
         if (obj == null)
         {
@@ -85,7 +84,7 @@ public class CriField
 
         if (typeConverter.CanConvertFrom(typ))
         {
-            return typeConverter.ConvertFrom(obj);
+            return typeConverter.ConvertFrom(obj) ?? NullValues[FieldTypeIndex];
         }
 
         return DefaultValue;

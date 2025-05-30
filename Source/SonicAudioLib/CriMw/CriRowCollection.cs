@@ -30,7 +30,7 @@ public class CriRowCollection(CriTable parent) : IEnumerable<CriRow>
         rows.Add(criRow);
     }
 
-    public CriRow Add(params object[] objs)
+    public CriRow Add(params object?[] objs)
     {
         var criRow = Parent.NewRow();
 

@@ -14,7 +14,7 @@ public class DataExtractor
     public bool EnableThreading { get; set; } = true;
     public int MaxThreads { get; set; } = 4;
 
-    public IProgress<double> Progress { get; set; }
+    public IProgress<double>? Progress { get; set; }
 
     public void Add(object source, string destinationFileName, long position, long length)
     {
@@ -66,8 +66,8 @@ public class DataExtractor
 
     private sealed class Item
     {
-        public object Source { get; set; }
-        public string DestinationFileName { get; set; }
+        public required object Source { get; set; }
+        public required string DestinationFileName { get; set; }
         public long Position { get; set; }
         public long Length { get; set; }
     }

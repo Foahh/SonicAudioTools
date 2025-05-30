@@ -19,7 +19,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
     ///     Gets header of the written AFS2 archive.
     ///     Should be gotten after <see cref="Write(Stream)" /> is called.
     /// </summary>
-    public byte[] Header { get; private set; }
+    public byte[]? Header { get; private set; }
 
     public override void Read(Stream source)
     {
@@ -61,7 +61,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         Align = DataStream.ReadUInt16(source);
         SubKey = DataStream.ReadUInt16(source);
 
-        CriAfs2Entry previousEntry = null;
+        CriAfs2Entry? previousEntry = null;
         for (uint i = 0; i < entryCount; i++)
         {
             var afs2Entry = new CriAfs2Entry();
@@ -171,7 +171,6 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         {
             var entryPosition = vldPool.Length;
             vldPool.Put(afs2Entry.Stream);
-
             WriteByLength(positionFieldLength, entryPosition);
         }
 
@@ -185,7 +184,7 @@ public class CriAfs2Archive : ArchiveBase<CriAfs2Entry>
         vldPool.Clear();
     }
 
-    public CriAfs2Entry GetById(uint id)
+    public CriAfs2Entry? GetById(uint id)
     {
         return Entries.FirstOrDefault(e => e.Id == id);
     }
