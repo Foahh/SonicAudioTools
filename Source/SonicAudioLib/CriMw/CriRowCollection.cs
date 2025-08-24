@@ -6,28 +6,28 @@ namespace SonicAudioLib.CriMw;
 
 public class CriRowCollection(CriTable parent) : IEnumerable<CriRow>
 {
-    private readonly List<CriRow> rows = [];
+    private readonly List<CriRow> _rows = [];
 
-    public CriRow this[int index] => rows[index];
+    public CriRow this[int index] => _rows[index];
 
-    public int Count => rows.Count;
+    public int Count => _rows.Count;
 
     public CriTable Parent { get; internal set; } = parent;
 
     public IEnumerator<CriRow> GetEnumerator()
     {
-        return ((IEnumerable<CriRow>)rows).GetEnumerator();
+        return ((IEnumerable<CriRow>)_rows).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return ((IEnumerable<CriRow>)rows).GetEnumerator();
+        return ((IEnumerable<CriRow>)_rows).GetEnumerator();
     }
 
     public void Add(CriRow criRow)
     {
         criRow.Parent = Parent;
-        rows.Add(criRow);
+        _rows.Add(criRow);
     }
 
     public CriRow Add(params object?[] objs)
@@ -48,6 +48,6 @@ public class CriRowCollection(CriTable parent) : IEnumerable<CriRow>
 
     internal void Clear()
     {
-        rows.Clear();
+        _rows.Clear();
     }
 }

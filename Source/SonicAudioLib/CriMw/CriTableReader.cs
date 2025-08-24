@@ -9,17 +9,17 @@ namespace SonicAudioLib.CriMw;
 
 public sealed class CriTableReader : IDisposable
 {
-    private readonly List<CriTableField> fields;
-    private readonly bool leaveOpen;
-    private CriTableHeader header;
-    private long headerPosition;
+    private readonly List<CriTableField> _fields;
+    private readonly bool _leaveOpen;
+    private CriTableHeader _header;
+    private long _headerPosition;
 
     private CriTableReader(Stream source, bool leaveOpen)
     {
         SourceStream = source;
-        header = new CriTableHeader();
-        fields = [];
-        this.leaveOpen = leaveOpen;
+        _header = new CriTableHeader();
+        _fields = [];
+        this._leaveOpen = leaveOpen;
 
         ReadTable();
     }
@@ -28,11 +28,11 @@ public sealed class CriTableReader : IDisposable
 
     public object? this[string fieldName] => GetValue(fieldName);
 
-    public ushort NumberOfFields => header.FieldCount;
+    public ushort NumberOfFields => _header.FieldCount;
 
-    public uint NumberOfRows => header.RowCount;
+    public uint NumberOfRows => _header.RowCount;
 
-    public string TableName => header.TableName;
+    public string TableName => _header.TableName;
 
     public long CurrentRow { get; private set; } = -1;
 
@@ -42,9 +42,9 @@ public sealed class CriTableReader : IDisposable
 
     public void Dispose()
     {
-        fields.Clear();
+        _fields.Clear();
 
-        if (!leaveOpen)
+        if (!_leaveOpen)
         {
             SourceStream.Close();
         }
@@ -52,19 +52,19 @@ public sealed class CriTableReader : IDisposable
 
     private void ReadTable()
     {
-        headerPosition = SourceStream.Position;
+        _headerPosition = SourceStream.Position;
 
-        if (!(header.Signature = DataStream.ReadBytes(SourceStream, 4)).SequenceEqual(CriTableHeader.SignatureBytes))
+        if (!(_header.Signature = DataStream.ReadBytes(SourceStream, 4)).SequenceEqual(CriTableHeader.SignatureBytes))
         {
             var unmaskedSource = new MemoryStream();
 
-            CriTableMasker.FindKeys(header.Signature, out var x, out var m);
+            CriTableMasker.FindKeys(_header.Signature, out var x, out var m);
 
-            SourceStream.Seek(headerPosition, SeekOrigin.Begin);
+            SourceStream.Seek(_headerPosition, SeekOrigin.Begin);
             CriTableMasker.Mask(SourceStream, unmaskedSource, SourceStream.Length, x, m);
 
             // Close the old stream
-            if (!leaveOpen)
+            if (!_leaveOpen)
             {
                 SourceStream.Close();
             }
@@ -73,16 +73,16 @@ public sealed class CriTableReader : IDisposable
             SourceStream.Seek(4, SeekOrigin.Begin);
         }
 
-        header.Length = DataStream.ReadUInt32Be(SourceStream) + 0x8;
-        header.UnknownByte = DataStream.ReadByte(SourceStream);
-        header.EncodingType = DataStream.ReadByte(SourceStream);
+        _header.Length = DataStream.ReadUInt32Be(SourceStream) + 0x8;
+        _header.UnknownByte = DataStream.ReadByte(SourceStream);
+        _header.EncodingType = DataStream.ReadByte(SourceStream);
 
-        if (header.UnknownByte != 0)
+        if (_header.UnknownByte != 0)
         {
-            throw new InvalidDataException($"Invalid byte ({header.UnknownByte}. Please report this error with the file(s).");
+            throw new InvalidDataException($"Invalid byte ({_header.UnknownByte}. Please report this error with the file(s).");
         }
 
-        switch (header.EncodingType)
+        switch (_header.EncodingType)
         {
             case CriTableHeader.EncodingTypeShiftJis:
                 EncodingType = Encoding.GetEncoding("shift-jis");
@@ -93,19 +93,19 @@ public sealed class CriTableReader : IDisposable
                 break;
 
             default:
-                throw new InvalidDataException($"Unknown encoding type ({header.EncodingType}). Please report this error with the file(s).");
+                throw new InvalidDataException($"Unknown encoding type ({_header.EncodingType}). Please report this error with the file(s).");
         }
 
-        header.RowsPosition = (ushort)(DataStream.ReadUInt16Be(SourceStream) + 0x8);
-        header.StringPoolPosition = DataStream.ReadUInt32Be(SourceStream) + 0x8;
-        header.DataPoolPosition = DataStream.ReadUInt32Be(SourceStream) + 0x8;
-        header.TableName = ReadString();
-        header.FieldCount = DataStream.ReadUInt16Be(SourceStream);
-        header.RowLength = DataStream.ReadUInt16Be(SourceStream);
-        header.RowCount = DataStream.ReadUInt32Be(SourceStream);
+        _header.RowsPosition = (ushort)(DataStream.ReadUInt16Be(SourceStream) + 0x8);
+        _header.StringPoolPosition = DataStream.ReadUInt32Be(SourceStream) + 0x8;
+        _header.DataPoolPosition = DataStream.ReadUInt32Be(SourceStream) + 0x8;
+        _header.TableName = ReadString();
+        _header.FieldCount = DataStream.ReadUInt16Be(SourceStream);
+        _header.RowLength = DataStream.ReadUInt16Be(SourceStream);
+        _header.RowCount = DataStream.ReadUInt32Be(SourceStream);
 
         uint offset = 0;
-        for (ushort i = 0; i < header.FieldCount; i++)
+        for (ushort i = 0; i < _header.FieldCount; i++)
         {
             var field = new CriTableField();
             field.Flags = (CriFieldFlags)DataStream.ReadByte(SourceStream);
@@ -165,43 +165,43 @@ public sealed class CriTableReader : IDisposable
                 }
             }
 
-            fields.Add(field);
+            _fields.Add(field);
         }
     }
 
     public string GetFieldName(int fieldIndex)
     {
-        return fields[fieldIndex].Name;
+        return _fields[fieldIndex].Name;
     }
 
     public Type GetFieldType(int fieldIndex)
     {
-        return CriField.FieldTypes[(byte)fields[fieldIndex].Flags & 0x0F];
+        return CriField.FieldTypes[(byte)_fields[fieldIndex].Flags & 0x0F];
     }
 
     public Type GetFieldType(string fieldName)
     {
-        return CriField.FieldTypes[(byte)fields[GetFieldIndex(fieldName)].Flags & 0x0F];
+        return CriField.FieldTypes[(byte)_fields[GetFieldIndex(fieldName)].Flags & 0x0F];
     }
 
     internal CriFieldFlags GetFieldFlag(string fieldName)
     {
-        return fields[GetFieldIndex(fieldName)].Flags;
+        return _fields[GetFieldIndex(fieldName)].Flags;
     }
 
     internal CriFieldFlags GetFieldFlag(int fieldIndex)
     {
-        return fields[fieldIndex].Flags;
+        return _fields[fieldIndex].Flags;
     }
 
     public object? GetFieldValue(int fieldIndex)
     {
-        return fields[fieldIndex].Value;
+        return _fields[fieldIndex].Value;
     }
 
     public object? GetFieldValue(string fieldName)
     {
-        return fields[GetFieldIndex(fieldName)].Value;
+        return _fields[GetFieldIndex(fieldName)].Value;
     }
 
     public CriField GetField(int fieldIndex)
@@ -216,22 +216,22 @@ public sealed class CriTableReader : IDisposable
 
     public int GetFieldIndex(string fieldName)
     {
-        return fields.FindIndex(field => field.Name == fieldName);
+        return _fields.FindIndex(field => field.Name == fieldName);
     }
 
     public bool ContainsField(string fieldName)
     {
-        return fields.Exists(field => field.Name == fieldName);
+        return _fields.Exists(field => field.Name == fieldName);
     }
 
     private void GoToValue(int fieldIndex)
     {
-        SourceStream.Seek(headerPosition + header.RowsPosition + header.RowLength * CurrentRow + fields[fieldIndex].Offset, SeekOrigin.Begin);
+        SourceStream.Seek(_headerPosition + _header.RowsPosition + _header.RowLength * CurrentRow + _fields[fieldIndex].Offset, SeekOrigin.Begin);
     }
 
     public bool Read()
     {
-        if (CurrentRow + 1 >= header.RowCount)
+        if (CurrentRow + 1 >= _header.RowCount)
         {
             return false;
         }
@@ -242,7 +242,7 @@ public sealed class CriTableReader : IDisposable
 
     public bool MoveToRow(long rowIndex)
     {
-        if (rowIndex >= header.RowCount)
+        if (rowIndex >= _header.RowCount)
         {
             return false;
         }
@@ -253,11 +253,11 @@ public sealed class CriTableReader : IDisposable
 
     public object?[] GetValueArray()
     {
-        var values = new object?[header.FieldCount];
+        var values = new object?[_header.FieldCount];
 
-        for (var i = 0; i < header.FieldCount; i++)
+        for (var i = 0; i < _header.FieldCount; i++)
         {
-            if (fields[i].Flags.HasFlag(CriFieldFlags.Data))
+            if (_fields[i].Flags.HasFlag(CriFieldFlags.Data))
             {
                 values[i] = GetData(i);
             }
@@ -273,7 +273,7 @@ public sealed class CriTableReader : IDisposable
 
     public IEnumerable GetValues()
     {
-        for (var i = 0; i < header.FieldCount; i++)
+        for (var i = 0; i < _header.FieldCount; i++)
         {
             yield return GetValue(i);
         }
@@ -281,23 +281,23 @@ public sealed class CriTableReader : IDisposable
 
     public object? GetValue(int fieldIndex)
     {
-        if (fieldIndex < 0 || fieldIndex >= fields.Count)
+        if (fieldIndex < 0 || fieldIndex >= _fields.Count)
         {
             return null;
         }
 
-        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
+        if (!_fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
-            if (fields[fieldIndex].Flags.HasFlag(CriFieldFlags.Data))
+            if (_fields[fieldIndex].Flags.HasFlag(CriFieldFlags.Data))
             {
                 return new SubStream(SourceStream, 0, 0);
             }
 
-            return fields[fieldIndex].Value;
+            return _fields[fieldIndex].Value;
         }
 
         GoToValue(fieldIndex);
-        return ReadValue(fields[fieldIndex].Flags);
+        return ReadValue(_fields[fieldIndex].Flags);
     }
 
     public object? GetValue(string fieldName)
@@ -460,14 +460,14 @@ public sealed class CriTableReader : IDisposable
 
     public uint GetLength(int fieldIndex)
     {
-        if (fieldIndex < 0 || fieldIndex >= fields.Count)
+        if (fieldIndex < 0 || fieldIndex >= _fields.Count)
         {
             return 0;
         }
 
-        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
+        if (!_fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
-            return fields[fieldIndex].Length;
+            return _fields[fieldIndex].Length;
         }
 
         GoToValue(fieldIndex);
@@ -483,18 +483,18 @@ public sealed class CriTableReader : IDisposable
 
     public uint GetPosition(int fieldIndex)
     {
-        if (fieldIndex < 0 || fieldIndex >= fields.Count)
+        if (fieldIndex < 0 || fieldIndex >= _fields.Count)
         {
             return 0;
         }
 
-        if (!fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
+        if (!_fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage))
         {
-            return fields[fieldIndex].Position;
+            return _fields[fieldIndex].Position;
         }
 
         GoToValue(fieldIndex);
-        return (uint)(headerPosition + header.DataPoolPosition + DataStream.ReadUInt32Be(SourceStream));
+        return (uint)(_headerPosition + _header.DataPoolPosition + DataStream.ReadUInt32Be(SourceStream));
     }
 
     public uint? GetPosition(string fieldName)
@@ -527,12 +527,12 @@ public sealed class CriTableReader : IDisposable
         var stringPosition = DataStream.ReadUInt32Be(SourceStream);
         var previousPosition = SourceStream.Position;
 
-        SourceStream.Seek(headerPosition + header.StringPoolPosition + stringPosition, SeekOrigin.Begin);
+        SourceStream.Seek(_headerPosition + _header.StringPoolPosition + stringPosition, SeekOrigin.Begin);
         var readString = DataStream.ReadCString(SourceStream, EncodingType);
 
         SourceStream.Seek(previousPosition, SeekOrigin.Begin);
 
-        if (readString == StringPool.AdxBlankString || readString == header.TableName && stringPosition == 0)
+        if (readString == StringPool.AdxBlankString || readString == _header.TableName && stringPosition == 0)
         {
             return string.Empty;
         }
@@ -574,7 +574,7 @@ public sealed class CriTableReader : IDisposable
                     // Some ACB files have the length info set to zero for UTF table fields, so find the correct length
                     if (position > 0 && length == 0)
                     {
-                        SourceStream.Seek(headerPosition + header.DataPoolPosition + position, SeekOrigin.Begin);
+                        SourceStream.Seek(_headerPosition + _header.DataPoolPosition + position, SeekOrigin.Begin);
 
                         if (DataStream.ReadBytes(SourceStream, 4).SequenceEqual(CriTableHeader.SignatureBytes))
                         {
@@ -582,7 +582,7 @@ public sealed class CriTableReader : IDisposable
                         }
                     }
 
-                    return new SubStream(SourceStream, headerPosition + header.DataPoolPosition + position, length);
+                    return new SubStream(SourceStream, _headerPosition + _header.DataPoolPosition + position, length);
                 }
             case CriFieldFlags.Guid:
                 return new Guid(DataStream.ReadBytes(SourceStream, 16));

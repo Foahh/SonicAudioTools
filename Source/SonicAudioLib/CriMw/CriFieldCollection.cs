@@ -7,36 +7,36 @@ namespace SonicAudioLib.CriMw;
 
 public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 {
-    private readonly List<CriField> fields = [];
+    private readonly List<CriField> _fields = [];
 
-    public CriField this[int index] => fields[index];
+    public CriField this[int index] => _fields[index];
 
     public CriField? this[string name]
     {
         get
         {
-            return fields.FirstOrDefault(field => field.FieldName == name);
+            return _fields.FirstOrDefault(field => field.FieldName == name);
         }
     }
 
-    public int Count => fields.Count;
+    public int Count => _fields.Count;
 
     public CriTable? Parent { get; internal set; } = parent;
 
     public IEnumerator<CriField> GetEnumerator()
     {
-        return ((IEnumerable<CriField>)fields).GetEnumerator();
+        return ((IEnumerable<CriField>)_fields).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return ((IEnumerable<CriField>)fields).GetEnumerator();
+        return ((IEnumerable<CriField>)_fields).GetEnumerator();
     }
 
     public void Add(CriField criField)
     {
         criField.Parent = Parent;
-        fields.Add(criField);
+        _fields.Add(criField);
     }
 
     public CriField Add(string name, Type type)
@@ -57,20 +57,20 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 
     public void Insert(int index, CriField criField)
     {
-        if (index >= fields.Count || index < 0)
+        if (index >= _fields.Count || index < 0)
         {
-            fields.Add(criField);
+            _fields.Add(criField);
         }
 
         else
         {
-            fields.Insert(index, criField);
+            _fields.Insert(index, criField);
         }
     }
 
     public void Remove(CriField criField)
     {
-        fields.Remove(criField);
+        _fields.Remove(criField);
 
         if (Parent is null)
         {
@@ -85,11 +85,11 @@ public class CriFieldCollection(CriTable parent) : IEnumerable<CriField>
 
     public void RemoveAt(int index)
     {
-        Remove(fields[index]);
+        Remove(_fields[index]);
     }
 
     internal void Clear()
     {
-        fields.Clear();
+        _fields.Clear();
     }
 }

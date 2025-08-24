@@ -8,12 +8,12 @@ namespace SonicAudioLib.IO;
 public class StringPool
 {
     public const string AdxBlankString = "<NULL>";
-    private readonly Encoding encoding = Encoding.Default;
-    private readonly List<StringItem> items = [];
+    private readonly Encoding _encoding = Encoding.Default;
+    private readonly List<StringItem> _items = [];
 
     public StringPool(Encoding encoding)
     {
-        this.encoding = encoding;
+        this._encoding = encoding;
     }
 
     public StringPool()
@@ -32,9 +32,9 @@ public class StringPool
         }
 
         var position = Length;
-        items.Add(new StringItem { Value = value, Position = position });
+        _items.Add(new StringItem { Value = value, Position = position });
 
-        Length += encoding.GetByteCount(value) + 1;
+        Length += _encoding.GetByteCount(value) + 1;
         return position;
     }
 
@@ -42,25 +42,25 @@ public class StringPool
     {
         Position = (uint)destination.Position;
 
-        foreach (var item in items)
+        foreach (var item in _items)
         {
-            DataStream.WriteCString(destination, item.Value, encoding);
+            DataStream.WriteCString(destination, item.Value, _encoding);
         }
     }
 
     public bool ContainsString(string value)
     {
-        return items.Any(item => item.Value == value);
+        return _items.Any(item => item.Value == value);
     }
 
     public long GetStringPosition(string value)
     {
-        return items.First(item => item.Value == value).Position;
+        return _items.First(item => item.Value == value).Position;
     }
 
     public void Clear()
     {
-        items.Clear();
+        _items.Clear();
     }
 
     private sealed class StringItem

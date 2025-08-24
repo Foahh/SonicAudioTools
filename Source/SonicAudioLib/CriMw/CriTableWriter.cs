@@ -18,23 +18,23 @@ public sealed class CriTableWriter : IDisposable
         End
     }
 
-    private readonly List<CriTableField> fields;
+    private readonly List<CriTableField> _fields;
 
-    private readonly CriTableWriterSettings settings;
-    private readonly StringPool stringPool;
-    private readonly DataPool vldPool;
-    private CriTableHeader header;
-    private uint headerPosition;
+    private readonly CriTableWriterSettings _settings;
+    private readonly StringPool _stringPool;
+    private readonly DataPool _vldPool;
+    private CriTableHeader _header;
+    private uint _headerPosition;
 
     private CriTableWriter(Stream destination, CriTableWriterSettings settings)
     {
         DestinationStream = destination;
-        this.settings = settings;
+        this._settings = settings;
 
-        header = new CriTableHeader();
-        fields = [];
-        stringPool = new StringPool(settings.EncodingType);
-        vldPool = new DataPool(settings.Align);
+        _header = new CriTableHeader();
+        _fields = [];
+        _stringPool = new StringPool(settings.EncodingType);
+        _vldPool = new DataPool(settings.Align);
     }
 
     public Status CurrentStatus { get; private set; } = Status.Begin;
@@ -48,11 +48,11 @@ public sealed class CriTableWriter : IDisposable
             WriteEndTable();
         }
 
-        fields.Clear();
-        stringPool.Clear();
-        vldPool.Clear();
+        _fields.Clear();
+        _stringPool.Clear();
+        _vldPool.Clear();
 
-        if (!settings.LeaveOpen)
+        if (!_settings.LeaveOpen)
         {
             DestinationStream.Close();
         }
@@ -67,14 +67,14 @@ public sealed class CriTableWriter : IDisposable
 
         CurrentStatus = Status.Start;
 
-        headerPosition = (uint)DestinationStream.Position;
+        _headerPosition = (uint)DestinationStream.Position;
 
-        if (settings.PutBlankString)
+        if (_settings.PutBlankString)
         {
-            stringPool.Put(StringPool.AdxBlankString);
+            _stringPool.Put(StringPool.AdxBlankString);
         }
 
-        header.TableNamePosition = (uint)stringPool.Put(tableName);
+        _header.TableNamePosition = (uint)_stringPool.Put(tableName);
 
         Span<byte> buffer = stackalloc byte[32];
         DestinationStream.Write(buffer);
@@ -94,50 +94,50 @@ public sealed class CriTableWriter : IDisposable
 
         CurrentStatus = Status.End;
 
-        DestinationStream.Seek(headerPosition + header.RowsPosition + header.RowLength * header.RowCount, SeekOrigin.Begin);
+        DestinationStream.Seek(_headerPosition + _header.RowsPosition + _header.RowLength * _header.RowCount, SeekOrigin.Begin);
 
-        stringPool.Write(DestinationStream);
-        header.StringPoolPosition = (uint)stringPool.Position - headerPosition;
+        _stringPool.Write(DestinationStream);
+        _header.StringPoolPosition = (uint)_stringPool.Position - _headerPosition;
 
-        DataStream.Pad(DestinationStream, vldPool.Align);
+        DataStream.Pad(DestinationStream, _vldPool.Align);
 
-        vldPool.Write(DestinationStream);
-        header.DataPoolPosition = (uint)vldPool.Position - headerPosition;
+        _vldPool.Write(DestinationStream);
+        _header.DataPoolPosition = (uint)_vldPool.Position - _headerPosition;
 
-        DataStream.Pad(DestinationStream, vldPool.Align);
+        DataStream.Pad(DestinationStream, _vldPool.Align);
 
         var previousPosition = DestinationStream.Position;
 
-        header.Length = (uint)DestinationStream.Position - headerPosition;
+        _header.Length = (uint)DestinationStream.Position - _headerPosition;
 
-        if (Equals(settings.EncodingType, Encoding.GetEncoding("shift-jis")))
+        if (Equals(_settings.EncodingType, Encoding.GetEncoding("shift-jis")))
         {
-            header.EncodingType = CriTableHeader.EncodingTypeShiftJis;
+            _header.EncodingType = CriTableHeader.EncodingTypeShiftJis;
         }
 
-        else if (Equals(settings.EncodingType, Encoding.UTF8))
+        else if (Equals(_settings.EncodingType, Encoding.UTF8))
         {
-            header.EncodingType = CriTableHeader.EncodingTypeUtf8;
+            _header.EncodingType = CriTableHeader.EncodingTypeUtf8;
         }
 
-        DestinationStream.Seek(headerPosition, SeekOrigin.Begin);
+        DestinationStream.Seek(_headerPosition, SeekOrigin.Begin);
 
         DestinationStream.Write(CriTableHeader.SignatureBytes, 0, 4);
-        DataStream.WriteUInt32Be(DestinationStream, header.Length - 8);
-        DataStream.WriteByte(DestinationStream, header.UnknownByte);
-        DataStream.WriteByte(DestinationStream, header.EncodingType);
-        DataStream.WriteUInt16Be(DestinationStream, (ushort)(header.RowsPosition - 8));
-        DataStream.WriteUInt32Be(DestinationStream, header.StringPoolPosition - 8);
-        DataStream.WriteUInt32Be(DestinationStream, header.DataPoolPosition - 8);
-        DataStream.WriteUInt32Be(DestinationStream, header.TableNamePosition);
-        DataStream.WriteUInt16Be(DestinationStream, header.FieldCount);
-        DataStream.WriteUInt16Be(DestinationStream, header.RowLength);
-        DataStream.WriteUInt32Be(DestinationStream, header.RowCount);
+        DataStream.WriteUInt32Be(DestinationStream, _header.Length - 8);
+        DataStream.WriteByte(DestinationStream, _header.UnknownByte);
+        DataStream.WriteByte(DestinationStream, _header.EncodingType);
+        DataStream.WriteUInt16Be(DestinationStream, (ushort)(_header.RowsPosition - 8));
+        DataStream.WriteUInt32Be(DestinationStream, _header.StringPoolPosition - 8);
+        DataStream.WriteUInt32Be(DestinationStream, _header.DataPoolPosition - 8);
+        DataStream.WriteUInt32Be(DestinationStream, _header.TableNamePosition);
+        DataStream.WriteUInt16Be(DestinationStream, _header.FieldCount);
+        DataStream.WriteUInt16Be(DestinationStream, _header.RowLength);
+        DataStream.WriteUInt32Be(DestinationStream, _header.RowCount);
 
-        if (settings.EnableMask)
+        if (_settings.EnableMask)
         {
-            DestinationStream.Seek(headerPosition, SeekOrigin.Begin);
-            CriTableMasker.Mask(DestinationStream, header.Length, settings.MaskXor, settings.MaskXorMultiplier);
+            DestinationStream.Seek(_headerPosition, SeekOrigin.Begin);
+            CriTableMasker.Mask(DestinationStream, _header.Length, _settings.MaskXor, _settings.MaskXorMultiplier);
         }
 
         DestinationStream.Seek(previousPosition, SeekOrigin.Begin);
@@ -191,8 +191,8 @@ public sealed class CriTableWriter : IDisposable
             WriteValue(defaultValue);
         }
 
-        fields.Add(field);
-        header.FieldCount++;
+        _fields.Add(field);
+        _header.FieldCount++;
     }
 
     public void WriteField(string fieldName, Type fieldType)
@@ -222,33 +222,33 @@ public sealed class CriTableWriter : IDisposable
             WriteString(field.Name);
         }
 
-        field.Offset = header.RowLength;
+        field.Offset = _header.RowLength;
         switch (field.Flags & CriFieldFlags.TypeMask)
         {
             case CriFieldFlags.Byte:
             case CriFieldFlags.SByte:
-                header.RowLength += 1;
+                _header.RowLength += 1;
                 break;
             case CriFieldFlags.Int16:
             case CriFieldFlags.UInt16:
-                header.RowLength += 2;
+                _header.RowLength += 2;
                 break;
             case CriFieldFlags.Int32:
             case CriFieldFlags.UInt32:
             case CriFieldFlags.Single:
             case CriFieldFlags.String:
-                header.RowLength += 4;
+                _header.RowLength += 4;
                 break;
             case CriFieldFlags.Int64:
             case CriFieldFlags.UInt64:
             case CriFieldFlags.Double:
             case CriFieldFlags.Data:
-                header.RowLength += 8;
+                _header.RowLength += 8;
                 break;
         }
 
-        fields.Add(field);
-        header.FieldCount++;
+        _fields.Add(field);
+        _header.FieldCount++;
     }
 
     public void WriteField(CriField criField)
@@ -265,7 +265,7 @@ public sealed class CriTableWriter : IDisposable
 
         CurrentStatus = Status.Idle;
 
-        header.RowsPosition = (ushort)(DestinationStream.Position - headerPosition);
+        _header.RowsPosition = (ushort)(DestinationStream.Position - _headerPosition);
     }
 
     public void WriteStartRow()
@@ -282,16 +282,16 @@ public sealed class CriTableWriter : IDisposable
 
         CurrentStatus = Status.Row;
 
-        header.RowCount++;
+        _header.RowCount++;
 
-        DestinationStream.Seek(headerPosition + header.RowsPosition + header.RowCount * header.RowLength, SeekOrigin.Begin);
-        var buffer = new byte[header.RowLength];
+        DestinationStream.Seek(_headerPosition + _header.RowsPosition + _header.RowCount * _header.RowLength, SeekOrigin.Begin);
+        var buffer = new byte[_header.RowLength];
         DestinationStream.Write(buffer);
     }
 
     public void WriteValue(int fieldIndex, object? rowValue)
     {
-        if (fieldIndex >= fields.Count || fieldIndex < 0 || !fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage) || rowValue == null)
+        if (fieldIndex >= _fields.Count || fieldIndex < 0 || !_fields[fieldIndex].Flags.HasFlag(CriFieldFlags.RowStorage) || rowValue == null)
         {
             return;
         }
@@ -302,12 +302,12 @@ public sealed class CriTableWriter : IDisposable
 
     public void WriteValue(string fieldName, object rowValue)
     {
-        WriteValue(fields.FindIndex(field => field.Name == fieldName), rowValue);
+        WriteValue(_fields.FindIndex(field => field.Name == fieldName), rowValue);
     }
 
     private void GoToValue(int fieldIndex)
     {
-        DestinationStream.Seek(headerPosition + header.RowsPosition + header.RowLength * (header.RowCount - 1) + fields[fieldIndex].Offset, SeekOrigin.Begin);
+        DestinationStream.Seek(_headerPosition + _header.RowsPosition + _header.RowLength * (_header.RowCount - 1) + _fields[fieldIndex].Offset, SeekOrigin.Begin);
     }
 
     public void WriteEndRow()
@@ -324,7 +324,7 @@ public sealed class CriTableWriter : IDisposable
     {
         WriteStartRow();
 
-        for (var i = 0; i < Math.Min(rowValues.Length, fields.Count); i++)
+        for (var i = 0; i < Math.Min(rowValues.Length, _fields.Count); i++)
         {
             WriteValue(i, rowValues[i]);
         }
@@ -337,14 +337,14 @@ public sealed class CriTableWriter : IDisposable
 
     private void WriteString(string value)
     {
-        if (settings.RemoveDuplicateStrings && stringPool.ContainsString(value))
+        if (_settings.RemoveDuplicateStrings && _stringPool.ContainsString(value))
         {
-            DataStream.WriteUInt32Be(DestinationStream, (uint)stringPool.GetStringPosition(value));
+            DataStream.WriteUInt32Be(DestinationStream, (uint)_stringPool.GetStringPosition(value));
         }
 
         else
         {
-            DataStream.WriteUInt32Be(DestinationStream, (uint)stringPool.Put(value));
+            DataStream.WriteUInt32Be(DestinationStream, (uint)_stringPool.Put(value));
         }
     }
 
@@ -397,7 +397,7 @@ public sealed class CriTableWriter : IDisposable
                 break;
 
             case byte[] value:
-                DataStream.WriteUInt32Be(DestinationStream, (uint)vldPool.Put(value));
+                DataStream.WriteUInt32Be(DestinationStream, (uint)_vldPool.Put(value));
                 DataStream.WriteUInt32Be(DestinationStream, (uint)value.Length);
                 break;
 
@@ -406,12 +406,12 @@ public sealed class CriTableWriter : IDisposable
                 break;
 
             case Stream value:
-                DataStream.WriteUInt32Be(DestinationStream, (uint)vldPool.Put(value));
+                DataStream.WriteUInt32Be(DestinationStream, (uint)_vldPool.Put(value));
                 DataStream.WriteUInt32Be(DestinationStream, (uint)value.Length);
                 break;
 
             case FileInfo value:
-                DataStream.WriteUInt32Be(DestinationStream, (uint)vldPool.Put(value));
+                DataStream.WriteUInt32Be(DestinationStream, (uint)_vldPool.Put(value));
                 DataStream.WriteUInt32Be(DestinationStream, (uint)value.Length);
                 break;
         }

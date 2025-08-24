@@ -6,21 +6,21 @@ namespace SonicAudioLib.IO;
 
 public class DataPool
 {
-    private readonly uint align = 1;
-    private readonly long baseLength;
-    private readonly ArrayList items = [];
+    private readonly uint _align = 1;
+    private readonly long _baseLength;
+    private readonly ArrayList _items = [];
 
     public DataPool(uint align, long baseLength)
     {
-        this.align = align;
+        this._align = align;
 
-        this.baseLength = baseLength;
-        Length = this.baseLength;
+        this._baseLength = baseLength;
+        Length = this._baseLength;
     }
 
     public DataPool(uint align)
     {
-        this.align = align;
+        this._align = align;
     }
 
     public DataPool()
@@ -31,7 +31,7 @@ public class DataPool
 
     public long Length { get; private set; }
 
-    public long Align => align;
+    public long Align => _align;
 
     public IProgress<double>? Progress { get; init; }
 
@@ -42,11 +42,11 @@ public class DataPool
             return 0;
         }
 
-        Length = Helpers.Align(Length, align);
+        Length = Helpers.Align(Length, _align);
 
         var position = Length;
         Length += data.Length;
-        items.Add(data);
+        _items.Add(data);
 
         return position;
     }
@@ -58,11 +58,11 @@ public class DataPool
             return 0;
         }
 
-        Length = Helpers.Align(Length, align);
+        Length = Helpers.Align(Length, _align);
 
         var position = Length;
         Length += stream.Length;
-        items.Add(stream);
+        _items.Add(stream);
 
         return position;
     }
@@ -74,11 +74,11 @@ public class DataPool
             return 0;
         }
 
-        Length = Helpers.Align(Length, align);
+        Length = Helpers.Align(Length, _align);
 
         var position = Length;
         Length += fileInfo.Length;
-        items.Add(fileInfo);
+        _items.Add(fileInfo);
 
         return position;
     }
@@ -87,9 +87,9 @@ public class DataPool
     {
         Position = destination.Position;
 
-        foreach (var item in items)
+        foreach (var item in _items)
         {
-            DataStream.Pad(destination, align);
+            DataStream.Pad(destination, _align);
 
             if (item is byte[] bytes) destination.Write(bytes);
 
@@ -105,12 +105,12 @@ public class DataPool
                 source.CopyTo(destination);
             }
 
-            Progress?.Report((destination.Position - Position) / (double)(Length - baseLength) * 100.0);
+            Progress?.Report((destination.Position - Position) / (double)(Length - _baseLength) * 100.0);
         }
     }
 
     public void Clear()
     {
-        items.Clear();
+        _items.Clear();
     }
 }

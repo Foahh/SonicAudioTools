@@ -8,7 +8,7 @@ namespace SonicAudioLib.IO;
 
 public class DataExtractor
 {
-    private readonly List<Item> items = [];
+    private readonly List<Item> _items = [];
 
     public int BufferSize { get; set; } = 4096;
     public bool EnableThreading { get; set; } = true;
@@ -18,13 +18,13 @@ public class DataExtractor
 
     public void Add(object source, string destinationFileName, long position, long length)
     {
-        items.Add(new Item { Source = source, DestinationFileName = destinationFileName, Position = position, Length = length });
+        _items.Add(new Item { Source = source, DestinationFileName = destinationFileName, Position = position, Length = length });
     }
 
     public void Run()
     {
         var progress = 0.0;
-        var factor = 100.0 / items.Count;
+        var factor = 100.0 / _items.Count;
 
         Action<Item> action = item =>
         {
@@ -53,15 +53,15 @@ public class DataExtractor
 
         if (EnableThreading)
         {
-            Parallel.ForEach(items, new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, action);
+            Parallel.ForEach(_items, new ParallelOptions { MaxDegreeOfParallelism = MaxThreads }, action);
         }
 
         else
         {
-            items.ForEach(action);
+            _items.ForEach(action);
         }
 
-        items.Clear();
+        _items.Clear();
     }
 
     private sealed class Item
